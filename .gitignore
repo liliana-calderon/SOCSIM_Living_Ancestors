@@ -1,0 +1,32 @@
+# History files
+.Rhistory
+
+# Session Data files
+*.RData
+
+# Temp Data files
+*.RDataTmp*
+
+# User-specific files
+.Ruserdata
+
+# RStudio files
+.Rproj.user/
+
+# R Environment Variables
+.Renviron
+
+# Intermediate figures
+Graphs/*
+
+# Rate and presim files
+rates/*
+presim*
+seed.Rda
+
+# Simulation results
+sim_results_*
+
+# Work in progress 
+progress/*
+Pass.R
