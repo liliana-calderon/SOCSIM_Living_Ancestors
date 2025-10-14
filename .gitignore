@@ -30,3 +30,6 @@ sim_results_*
 # Work in progress 
 progress/*
 Pass.R
+
+# Comparison Nordic countries
+z_DT_Nordic/*
