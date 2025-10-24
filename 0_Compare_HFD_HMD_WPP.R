@@ -60,14 +60,14 @@ lifetable_male_hist <- read_csv("Data/WPP2024_Life_Table_Complete_Medium_Male_19
 
 # Filter WPP fertility data for Sweden for the overlapping period (1950-2023)
 WPP_fert <- fertility %>% 
-  filter(Location == "Sweden" & Time >= 1950 & Time <= 2023 & Variant == "Medium") %>% 
+  filter(ISO3_code == "SWE" & Time >= 1950 & Time <= 2023 & Variant == "Medium") %>% 
   select(Year = Time, Age = AgeGrpStart, ASFR)  %>% 
   mutate(ASFR = ASFR/1000)
 
 # Combine WPP male and female life tables and filter for Sweden
 WPP_mort <- bind_rows(lifetable_female_hist, lifetable_male_hist) %>% 
-  filter(Location == "Sweden") %>%
-  select(Year = Time, Sex, Age = AgeGrpStart, mx, qx, px, lx, dx, Lx, Sx, Tx, ex, ax)
+  filter(ISO3_code == "SWE") %>%
+  select(Year = Time, Sex, Age = AgeGrpStart, mx, qx, ex)
 
 #----------------------------------------------------------------------------------------------------
 ## Comparison of HFD/HMD data with WPP for overlapping years (1950-2023) ----
@@ -79,7 +79,6 @@ ifelse(!dir.exists("Graphs"), dir.create("Graphs"), FALSE)
 
 # Extract years in WPP data to filter HFD data
 year_range_fert <- WPP_fert %>% pull(Year) %>% unique()
-
 # Wrangle HFC and HFD data
 HFD <- HFD %>% 
   filter(Year %in% year_range_fert) %>% 
