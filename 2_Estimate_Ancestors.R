@@ -89,6 +89,7 @@ mean_ancestors_birth %>%
         theme_graphs() +
         scale_color_viridis_d(option = "D", direction =-1)+
         scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+        scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2), limits = c(0, 2))+
         labs(x = "Birth Cohort", y = "Mean Number Alive at Birth", colour = "Ancestor")+
         theme(legend.title=element_blank())) %>% 
   cowplot::plot_grid(plotlist = .)
