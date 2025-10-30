@@ -9,7 +9,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 14-10-2025
-# Last modified on 27-10-2025
+# Last modified on 30-10-2025
 
 ## Based on code prepared for the microsimulation vs registers paper
 # U:/SOCSIM/SOCSIM_Registers/1_Compare_Input_Output.R
@@ -332,6 +332,7 @@ bind_rows(Input_fert %>% rename(Estimate = ASFR),
   labs(x = "Age")+
   theme_graphs()
 ggsave(file="Graphs/ASFR_ASMR_Input_Output.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/ASFR_ASMR_Input_Output.pdf", width=17, height=9, dpi=300, device = "pdf")
 #----------------------------------------------------------------------------------------------------
 ## Summary measures: TFR and e0 ----
 # Here, we use the socsim rates by 1 year age group and 1 calendar year
@@ -417,18 +418,6 @@ year_range_mort_1 <- min(year_breaks_mort_1):max(year_breaks_mort_1-1)
 
 ## Compare with ex at age 0 for Sweden in HMD and WPP
 
-# Get female life tables from HMD
-ltf <- readHMDweb(CNTRY = "SWE",
-                  item = "fltper_1x1",
-                  username = HMD_username,
-                  password = HMD_password)
-
-# Get male life tables from HMD
-ltm <- readHMDweb(CNTRY = "SWE",
-                  item = "mltper_1x1",
-                  username = HMD_username,
-                  password = HMD_password)
-
 # Combine WPP male and female life tables and filter for Sweden
 WPP_ex <- bind_rows(WPP_ltf, WPP_ltm) %>% 
   filter(ISO3_code == "SWE") %>%
@@ -484,3 +473,4 @@ bind_rows(TFR_Input %>% rename(Estimate = TFR) %>%  mutate(Rate = "TFR"),
   scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
   theme_graphs()
 ggsave(file="Graphs/TFR_e0_Input_Output.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/TFR_e0_Input_Output.pdf", width=17, height=9, dpi=300, device = "pdf")
