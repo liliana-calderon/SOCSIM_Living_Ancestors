@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------------------------------
-# SOCSIM - SOCSIM Living Ancestors - Estimate Living Ancestors
-# U:/SOCSIM/SOCSIM_Living_Ancestors/2_Estimate_Ancestors.R
+# SOCSIM - SOCSIM Living Ancestors - Estimate Mean Number of Living Ancestors
+# U:/SOCSIM/SOCSIM_Living_Ancestors/2_Estimate_Mean_Ancestors.R
 
 ## Estimate living ancestors from a SOCSIM microsimulation for Sweden (1751-2100)
 
