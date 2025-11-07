@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 27-10-2025
-# Last modified on 30-10-2025
+# Last modified on 03-11-2025
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 
@@ -44,14 +44,15 @@ final_sim_year <- 2100
 # Get pids of individuals born between 1751 and 2000
 egos <- opop %>% 
   mutate(birth_year = asYr(dob, last_month, final_sim_year)) %>% 
-  filter(birth_year > 1750 & birth_year <= 2000) %>% 
+  filter(birth_year >=1751 & birth_year <= 2000) %>% 
   pull(pid)
 
 # Check length of number of egos selected
 length(egos) # 2741612
 
-# Retrieve pids of ancestors of selected individuals
+# Retrieve pids of ancestors of individuals born 1751-2000
 ancestors <- retrieve_ancestors(opop = opop, egos = egos) 
+save(ancestors, file = "ancestors.RData")
 
 # Add sex and dates of birth and death of egos and their ancestors
 ancestors2 <- ancestors %>%
