@@ -104,3 +104,24 @@ recode_ancestors_sex <- function(opop_ancestors) {
                                        "Greatgreatgrandmothers", "Greatgreatgrandfathers")))
   return(opop_ancestors)
 }
+
+recode_ancestors_sex2 <- function(opop_ancestors) {
+  opop_ancestors <- opop_ancestors %>%
+    mutate(kin_type2 = case_when(kin_type %in% c("ego") ~ "Ego", 
+                                kin_type %in% c("mom") ~ "Mother", 
+                                kin_type %in% c("pop") ~ "Father", 
+                                kin_type %in% c("mm", "mf") ~ "Grandmothers", 
+                                kin_type %in% c("fm","ff") ~ "Grandfathers", 
+                                kin_type %in% c("mmm", "mfm", "mmf", "mff") ~ "Greatgrandmothers", 
+                                kin_type %in% c("fmm", "ffm", "fmf", "fff") ~ "Greatgrandfathers", 
+                                kin_type %in% c("mmmm", "mmfm", "mfmm", "mffm", "mmmf", "mmff", "mfmf", "mfff") ~ "Greatgreatgrandmothers", 
+                                kin_type %in% c("fmmm", "fmfm", "ffmm", "fffm", "fmmf", "fmff", "ffmf", "ffff") ~ "Greatgreatgrandfathers", 
+                                TRUE ~ NA_character_),
+           kin_type2 = factor(kin_type2, 
+                              levels = c("Greatgreatgrandmothers", "Greatgreatgrandfathers", 
+                                         "Greatgrandmothers", "Greatgrandfathers",
+                                         "Grandmothers", "Grandfathers",
+                                         "Mother", "Father", 
+                                         "Ego")))
+  return(opop_ancestors)
+}
