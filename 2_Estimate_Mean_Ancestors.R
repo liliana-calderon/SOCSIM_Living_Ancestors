@@ -48,7 +48,7 @@ egos <- opop %>%
   pull(pid)
 
 # Check length of number of egos selected
-length(egos) # 2741612
+length(egos) # 2845816
 
 # Retrieve pids of ancestors of individuals born 1751-2000
 ancestors <- retrieve_ancestors(opop = opop, egos = egos) 
