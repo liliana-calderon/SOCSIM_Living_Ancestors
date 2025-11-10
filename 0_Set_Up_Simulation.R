@@ -16,7 +16,7 @@
 ## and read the output into R. 
 
 # Created on 14-10-2025
-# Last modified on 27-10-2025
+# Last modified on 10-11-2025
 #------------------------------------------------------------------------------------------------------
 # SOCSIM simulation: input rates and assumptions ----
 
@@ -160,7 +160,7 @@ write_socsim_fertility_rates_WPP(Country = "SWE",
 ## To convert the annual probabilities to monthly probabilities,  
 # we assume that the probability of dying is constant over the year
 # and use the formula 1-(1-nqx)^(1/n) proposed by Kenneth Watcher (2014, p. 53). 
-# For the final age interval monthly probabilities are equal to 1/12
+# For the final age interval monthly probabilities are equal to 1
 
 # The probabilities are identical for all marital status 
 # (married, single, divorced and widowed) of each sex
@@ -186,7 +186,7 @@ write_socsim_rates_HMD(Country = "SWE",
 # To convert the annual WPP probabilities to monthly 'SOCSIM' probabilities, 
 # we assume that the probability of dying is constant over the year 
 # and use the formula $1-(1-_nq_x)^{1/n}$ proposed by Kenneth Watcher. 
-# For the final age interval 100, monthly probabilities are equal to 1/12.
+# For the final age interval 100, monthly probabilities are equal to 1.
 
 # The probabilities of death are identical for all marital status of each sex, 
 # and are only specified for single women and single men in the rate files. 
@@ -267,7 +267,7 @@ supfile <- "Sweden_long.sup"
 
 # Random number generator seed:
 seed <- as.character(sample(1:99999, 1, replace = F))
-# Random seed used for this simulation seed <- "74719"
+# Random seed used for this simulation seed <- "56008"
 
 # Save the seed number to use them later to read the data 
 save(seed, file = "seed.Rda")
@@ -282,7 +282,7 @@ end <- Sys.time()
 
 print(end-start)
 
-# Time difference of 1.394741 days for  1 simulation, with initial opop of 50000 and hetfert 0
+# Time difference of 2.819996 days for  1 simulation, with initial opop of 50000 and hetfert 0
 #----------------------------------------------------------------------------------------------------
 ## Read the output .opop and .omar files ----
 
