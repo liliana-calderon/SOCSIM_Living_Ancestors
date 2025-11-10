@@ -315,8 +315,8 @@ write_socsim_rates_HMD <- function(Country, Year_Max, HMD_username, HMD_password
     left_join(ltm %>% select(Year, Age, qx),
               by = c("Year","Age"), suffix = c("_F","_M")) %>%
     filter(Year <= Year_Max & Age <= 100) %>%
-    mutate(qx_Fmo = ifelse(Age == 100, 1/12, 1-(1-qx_F)^(1/12)),
-           qx_Mmo = ifelse(Age == 100, 1/12, 1-(1-qx_M)^(1/12)),
+    mutate(qx_Fmo = ifelse(Age == 100, 1, 1-(1-qx_F)^(1/12)),
+           qx_Mmo = ifelse(Age == 100, 1, 1-(1-qx_M)^(1/12)),
            Age_up = Age + 1, # SOCSIM uses the upper age bound
            Month = 0) %>%
     select(c(Year, Age_up, Month, qx_Fmo, qx_Mmo))
@@ -388,7 +388,7 @@ write_socsim_mortality_rates_WPP <- function(Country, Year_Min, Year_Max) {
   ASMP <- bind_rows(lifetable_female, lifetable_male) %>%
     filter(ISO3_code == Country) %>%
     select(Year = Time, Sex, Age = AgeGrpStart, qx) %>%
-    mutate(qx_mo = ifelse(Age == 100, 1/12, 1-(1-qx)^(1/12)),
+    mutate(qx_mo = ifelse(Age == 100, 1, 1-(1-qx)^(1/12)),
            Age_up = Age + 1, # SOCSIM uses the upper age bound
            Month = 0) %>%
     select(c(Year, Age_up, Month, Sex, qx_mo)) %>%
