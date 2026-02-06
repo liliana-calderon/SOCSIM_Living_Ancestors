@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 27-10-2025
-# Last modified on 03-11-2025
+# Last modified on 05-02-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 
@@ -54,6 +54,10 @@ length(egos) # 2845816
 ancestors <- retrieve_ancestors(opop = opop, egos = egos) 
 save(ancestors, file = "ancestors.RData")
 
+
+# Load data of ancestors
+load("ancestors.RData")
+
 # Add sex and dates of birth and death of egos and their ancestors
 ancestors2 <- ancestors %>%
   left_join(select(opop, c(pid, dob, dod, fem)), 
@@ -76,7 +80,6 @@ mean_ancestors_birth <- ancestors2 %>%
   mutate(n_ego = n_kin[kin_type == "Ego"], 
          mean_ancestors = n_kin / n_ego) %>%
   ungroup()
-
   
 # Plot mean number of ancestors alive at birth
 mean_ancestors_birth %>% 
@@ -96,3 +99,51 @@ mean_ancestors_birth %>%
   cowplot::plot_grid(plotlist = .)
 ggsave(file="Graphs/1_Mean_Number_Ancestors_Birth.jpeg", width=20, height=9, dpi=300)
 ggsave(file="Graphs/1_Mean_Number_Ancestors_Birth.pdf", width=20, height=9, dpi=300, device = "pdf")
+
+
+# Plot the sex gap in the mean number of ancestors alive at birth
+mean_ancestors_birth %>% 
+  select(-c(n_kin, n_ego)) %>% 
+  filter(kin_type != "Ego") %>% 
+  mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
+                      "Female", "Male"),
+         Generation = case_when(kin_type %in% c("Mother","Father" ) ~ "Parents",
+                                kin_type %in% c("Grandmothers","Grandfathers" ) ~ "Grandparents",
+                                kin_type %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ "Greatgrandparents",
+                                kin_type %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ "Greatgreatgrandparents",
+                                TRUE ~ NA), 
+         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
+                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>% 
+  select(-kin_type) %>% 
+  pivot_wider(names_from = Sex, values_from = mean_ancestors) %>% 
+  mutate(Sex_gap = Female - Male) %>% 
+  ggplot(aes(x= dob_ego_year, Sex_gap, group = Generation, colour = Generation)) +
+  geom_line(linewidth = 1) +
+  theme_graphs() +
+  scale_color_viridis_d(option = "D", direction =-1)+
+  labs(x = "Birth Cohort", y = "Sex Gap in the Mean Number Alive at Birth", colour = "Ancestor") +
+  theme(legend.title=element_blank())
+ggsave(file="Graphs/App_Mean_Number_Ancestors_Birth_Sex_Gap.jpeg", width=20, height=9, dpi=300)
+ggsave(file="Graphs/App_Mean_Number_Ancestors_Birth_Sex_Gap.pdf", width=20, height=9, dpi=300, device = "pdf")
+
+
+mean_ancestors_birth %>% 
+  select(-c(n_kin, n_ego)) %>% 
+  filter(kin_type != "Ego") %>% 
+  mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
+                      "Female", "Male"),
+         Generation = case_when(kin_type %in% c("Mother","Father" ) ~ "Parents",
+                                kin_type %in% c("Grandmothers","Grandfathers" ) ~ "Grandparents",
+                                kin_type %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ "Greatgrandparents",
+                                kin_type %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ "Greatgreatgrandparents",
+                                TRUE ~ NA), 
+         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
+                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>% 
+  select(-kin_type) %>% 
+  pivot_wider(names_from = Sex, values_from = mean_ancestors) %>% 
+  mutate(Sex_gap = Female - Male) %>% 
+  filter(dob_ego_year <1850) %>% 
+  select(-c(Female, Male)) %>% 
+  group_by(Generation) %>% 
+  summarise(Sex_gap_mean = mean(Sex_gap, na.rm = T)) %>% 
+  ungroup()

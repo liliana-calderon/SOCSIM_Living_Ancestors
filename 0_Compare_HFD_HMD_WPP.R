@@ -7,7 +7,7 @@
 # for the overlapping period 1950-2023 
 
 # Created on 15-10-2025
-# Last modified on 23-10-2025
+# Last modified on 03-02-2026
 #----------------------------------------------------------------------------------------------------
 ## Global Settings ----
 
@@ -19,6 +19,7 @@ options(scipen=999999)
 
 # Load necessary packages
 library(tidyverse)
+library(ggh4x)  # To facet scales-
 #install.packages("HMDHFDplus")
 library(HMDHFDplus)
 library(viridis)
@@ -83,11 +84,13 @@ year_range_fert <- WPP_fert %>% pull(Year) %>% unique()
 HFD <- HFD %>% 
   filter(Year %in% year_range_fert) %>% 
   select(-OpenInterval) %>% 
-  mutate(Source = "HFD")
+  mutate(Source = "HFD", 
+         Rate = "ASFR")
 
 # Wrangle SOCSIM data
 WPP_fert <- WPP_fert %>% 
-  mutate(Source = "WPP")
+  mutate(Source = "WPP", 
+         Rate = "ASFR")
 
 ## Plot ASFR from HFD vs WPP   
 
@@ -130,14 +133,16 @@ HMD_qx <- ltf %>%
               select(Year, Age, qx) %>%  
               mutate(Sex = "Male")) %>% 
   filter(Year %in% year_range_mort) %>% 
-  mutate(Source = "HMD")
+  mutate(Source = "HMD", 
+         Rate = "qx")
 
 # Wrangle WPP life tables
 WPP_qx <- WPP_mort %>% 
   select(Year, Sex, Age, qx) %>% 
-  mutate(Source = "WPP")
+  mutate(Source = "WPP", 
+         Rate = "qx")
   
-## Plot ASMR from HMD vs WPP   
+## Plot qx from HMD vs WPP   
 
 # Choose years to plot
 yrs_plot <- c(1950, 1975, 2000, 2023) 
@@ -153,7 +158,41 @@ bind_rows(HMD_qx, WPP_qx) %>%
   scale_x_continuous(breaks = seq(0,100, by = 20), guide = guide_axis(angle = 90)) +
   scale_y_log10() +
   theme_graphs()
-ggsave(file="Graphs/qx_HFD_WPP.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/qx_HMD_WPP.jpeg", width=17, height=9, dpi=300)
+
+
+## Final plot combining ASFR and ASMR ----
+
+# Years to plot
+yrs_plot <- c(1950, 1975, 2000, 2023) 
+
+bind_rows(HFD %>% rename(Estimate = ASFR), 
+          WPP_fert %>% rename(Estimate = ASFR)) %>% 
+  mutate(Sex = "Female") %>%   
+  bind_rows(HMD_qx %>% rename(Estimate = qx),
+            WPP_qx %>% rename(Estimate = qx)) %>% 
+  # There can be rates of 0, infinite (N_Deaths/0_Pop) and NaN (0_Deaths/0_Pop) values
+  filter(Estimate != 0) %>% 
+  filter(Sex == "Female") %>% 
+  mutate(Rate = ifelse(Rate == "ASFR", "Age-Specific Fertility Rates", "Age-Specific Probabilities of Death"), 
+         Age = factor(Age),
+         Year = factor(Year)) %>% 
+  filter(Year %in% yrs_plot) %>% 
+  ggplot(aes(x = Age, y = Estimate))+
+  facet_wrap(. ~ Rate, scales = "free") + 
+  geom_line(aes(colour = Year, linetype = Source, group = interaction(Year, Source)), linewidth = 1.5)+ 
+  scale_color_manual(values = c("#E69F00", "#009E73", "#2779B7", "#CC79A7"))+
+  scale_linetype_manual(values = c("dotted", "dotted", "solid"))+
+  facetted_pos_scales(y = list("Age-Specific Fertility Rates" = NULL,
+                               "Age-Specific Mortality Rates" =  scale_y_continuous(trans = "log10")))+
+  scale_x_discrete(breaks = c(0, 1, seq(5, 110, 5)), guide = guide_axis(angle = 90))+
+  labs(x = "Age")+
+  theme_graphs() +
+  theme(panel.grid.major.x = element_line(colour = "#C9C9C9", linetype = "dotted"),
+        panel.grid.major.y = element_line(colour = "#C9C9C9", linetype = "dotted"),
+        panel.grid.minor.x = element_line(colour = "#C9C9C9", linetype = "dotted"))
+ggsave(file="Graphs/ASFR_qx_HFD_HMD_WPP.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/ASFR_qx_HFD_HMD_WPP.pdf", width=17, height=9, dpi=300, device = "pdf")
 
 #----------------------------------------------------------------------------------------------------
 ## Summary measures: TFR and e0 ----
@@ -212,3 +251,27 @@ bind_rows(HMD_ex, WPP_ex) %>%
   theme_graphs()+
   labs(y = "Life expectancy at birth") 
 ggsave(file="Graphs/e0_HMD_WPP.jpeg", width=17, height=9, dpi=300)
+
+
+#----------------------------------------------------------------------------------------------------
+## Final plot combining TFR and e0 ----
+
+## Plotting TFR and e0 (for females) from HFD/HMD vs SOCSIM 
+bind_rows(HFD_TFR %>% rename(Estimate = TFR) %>%  mutate(Rate = "TFR"),
+          WPP_TFR %>% rename(Estimate = TFR) %>% mutate(Rate = "TFR")) %>% 
+  mutate(Sex = "Female") %>%   
+  bind_rows(HMD_ex %>% filter(Age == 0) %>% rename(Estimate = ex) %>% mutate(Rate = "e0"),
+             WPP_ex %>% filter(Age == 0) %>% rename(Estimate = ex) %>% mutate(Rate = "e0")) %>% 
+  filter(Sex == "Female") %>%
+  mutate(Rate = ifelse(Rate == "TFR", "Total Fertility Rate", "Life Expectancy at Birth"), 
+         Rate = factor(Rate, levels = c("Total Fertility Rate", "Life Expectancy at Birth"))) %>% 
+  ggplot(aes(x = Year, y = Estimate, group = Source))+
+  facet_wrap(. ~ Rate, scales = "free") + 
+  geom_line(aes(colour = Source), linewidth = 1.2) +
+  scale_color_manual(values = c("#CA650D", "#0C0B7F", "#007A75")) +
+  facetted_pos_scales(y = list("Total Fertility Rate" = scale_y_continuous(limits = c(0, NA)),
+                               "Life Expectancy at Birth" =  scale_y_continuous()))+
+  #scale_x_continuous(breaks = c(1960, 1980, 2000, 2020))+
+  theme_graphs()
+ggsave(file="Graphs/TFR_e0_HFD_HMD_WPP.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/TFR_e0_HFD_HMD_WPP.pdf", width=17, height=9, dpi=300, device = "pdf")
