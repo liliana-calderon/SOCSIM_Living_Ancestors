@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 05-02-2026
+# Last modified on 11-02-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -49,7 +49,7 @@ last_month <- opop %>% pull(dod) %>% max()
 final_sim_year <- 2100
 
 
-#### Calculate overlap with all ancestors per ego, 
+#### Calculate overlap with all ancestors per ego ----
 # considering dod == 0 as censored at last_month
 overlap_all_ego <- ancestors %>%
   # Add dates of birth and death of egos and their ancestors
@@ -70,8 +70,7 @@ overlap_all_ego <- ancestors %>%
          dob_ego_year = asYr(dob_ego, last_month, final_sim_year))
 
 
-## Calculate overlap with any ancestors by cohort and ancestors' generation
-
+## Calculate overlap with any ancestors by cohort and ancestors' generation ----
 overlap_any <- overlap_all_ego %>%
   recode_ancestors_sex() %>%   
   # Identify maximum month of overlap end, by ego and kin_type
@@ -119,8 +118,175 @@ ggsave(file="Graphs/2_Overlap_Any_Ancestors.jpeg", width=20, height=9, dpi=300)
 ggsave(file="Graphs/2_Overlap_Any_Ancestors.pdf", width=20, height=9, dpi=300, device = "pdf")
 
 
+## Calculate age-specific estimates of overlap with any/all ancestors by cohort ----
 
-## Calculate overlap with all ancestors by cohort and ancestors' generation
+# Create df with one row per reached age (in years) for each ego
+ego_ages <- opop %>%
+  rename(dob_ego = dob, dod_ego = dod) %>% 
+  mutate(dob_ego_year = asYr(dob_ego, last_month, final_sim_year)) %>%
+  filter(dob_ego_year >= 1751 & dob_ego_year <= 2000) %>%
+  mutate(dod_ego2 = if_else(dod_ego == 0, last_month, dod_ego),
+         max_age = floor((dod_ego2 - dob_ego) / 12)) %>%  
+  select(pid_ego = pid, dob_ego, dod_ego2, dob_ego_year, max_age) %>%
+  # Expand to one row per integer age
+  mutate(age = map(max_age, ~0:.x)) %>%
+  unnest(age) %>%
+  # Calculate the month when ego reaches each year of age
+  mutate(age_month = dob_ego + age * 12)
+
+
+# Create a function to estimate the cohort x age measures by cohort groups. 
+# This allow to handle the large number of rows 
+# resulting from a data frame with several ego-age rows for many ancestors
+
+estimates_cohort_age <- function(cohort_start, cohort_end) {
+  
+  cat("Processing cohorts:", cohort_start, "-", cohort_end, "\n")
+  
+  # Filter ego_ages for the selected cohorts
+  ego_ages_cohort <- ego_ages %>%
+    filter(dob_ego_year >= cohort_start & dob_ego_year <= cohort_end)
+  
+  # Get egos belonging to the selected cohorts
+  cohort_pids <- unique(ego_ages_cohort$pid_ego)
+  
+  # Filter ancestors for these egos only
+  ancestors_cohort <- ancestors %>%
+    filter(pid_ego %in% cohort_pids)
+  
+  #  Join ancestors and check if they are alive at each age
+  ego_age_ancestors <- ego_ages_cohort %>%
+    left_join(ancestors_cohort, by = "pid_ego", 
+              relationship = "many-to-many") %>% 
+    filter(kin_type != "ego") %>%
+    left_join(opop %>% select(pid_kin = pid, dob_kin = dob, dod_kin = dod),
+              by = "pid_kin") %>%
+    mutate(dod_kin2 = if_else(dod_kin == 0, last_month, dod_kin),
+           ancestor_alive = if_else(age_month >= dob_kin & age_month < dod_kin2, 1L, 0L)) %>%
+    recode_ancestors_sex()
+  
+  # Calculate proportion with at least one ancestor by age
+  prop_any_age <- ego_age_ancestors %>%
+    group_by(pid_ego, dob_ego_year, age, kin_type) %>%
+    summarise(has_any = any(ancestor_alive == 1L), .groups = "drop") %>%
+    # Aggregate by cohort-age-kin type
+    group_by(dob_ego_year, age, kin_type) %>%
+    summarise(n_with_any = sum(has_any, na.rm = TRUE), .groups = "drop") %>%
+    # Complete with all possible combinations of cohort-age-kin type
+    complete(dob_ego_year = cohort_start:cohort_end,
+             age = 0:100,
+             kin_type = unique(ego_age_ancestors$kin_type),
+             fill = list(n_with_any = 0)) %>%
+    filter(kin_type != "Ego") %>% 
+    # Add number of egos by cohort and age
+    left_join(ego_ages_cohort %>%
+                distinct(dob_ego_year, age, pid_ego) %>%
+                count(dob_ego_year, age, name = "n_ego"), 
+              by = c("dob_ego_year", "age")) %>%
+    mutate(prop_any = if_else(is.na(n_ego), NA_real_, n_with_any / n_ego))
+  
+  # Calculate mean number of ancestors alive at each age
+  mean_number_age <- ego_age_ancestors %>%
+    group_by(pid_ego, dob_ego_year, age, kin_type) %>%
+    summarise(n_alive = sum(ancestor_alive, na.rm = TRUE), .groups = "drop") %>%
+    # Aggregate by cohort-age-kin type
+    group_by(dob_ego_year, age, kin_type) %>%
+    summarise(sum_alive = sum(n_alive, na.rm = TRUE), .groups = "drop") %>%
+    # Complete with all possible combinations of cohort-age-kin type
+    complete(dob_ego_year = cohort_start:cohort_end,
+             age = 0:100,
+             kin_type = unique(ego_age_ancestors$kin_type),
+             fill = list(sum_alive = 0)) %>%
+    filter(kin_type != "Ego") %>% 
+    # Add number of egos by cohort and age
+    left_join(ego_ages_cohort %>%
+                distinct(dob_ego_year, age, pid_ego) %>%
+                count(dob_ego_year, age, name = "n_ego"), 
+              by = c("dob_ego_year", "age")) %>% 
+    mutate(mean_number = if_else(is.na(n_ego), NA_real_, sum_alive / n_ego))
+  
+  # Return both results
+  return(list(prop_any_age = prop_any_age, 
+              mean_number_age = mean_number_age))
+}
+
+# Map the function to all birth cohorts
+results <- map(1751:2000, ~ estimates_cohort_age(.x, .x), 
+               .progress = TRUE)
+
+
+# Combine results for the proportion of individuals with any ancestor alive by age
+prop_any_age <- results %>%
+  map("prop_any_age") %>%
+  bind_rows()
+save(prop_any_age, file = "prop_any_age.RData")
+
+# Check number of NAs, minimum and maximum
+prop_any_age %>% 
+  summarise(n_missing_prop = sum(is.na(prop_any)),
+            min_prop = min(prop_any, na.rm = TRUE),
+            max_prop = max(prop_any, na.rm = TRUE))
+
+# Plot proportion of individuals with at least one living ancestor by age
+prop_any_age %>% 
+  filter(dob_ego_year > 1750) %>% 
+  filter(kin_type != "Greatgreatgrandmothers" & kin_type != "Greatgreatgrandfathers") %>% 
+  mutate(prop_any = prop_any*100, 
+         kin_type = factor(kin_type, 
+                           levels = c("Greatgrandmothers", "Greatgrandfathers",
+                                      "Grandmothers", "Grandfathers",
+                                      "Mother", "Father"))) %>% 
+  ggplot(aes(x = dob_ego_year, y = age, fill = prop_any)) +
+  geom_tile(linewidth = 0) + 
+  facet_wrap(~ kin_type, ncol =2, axes = "all") +
+  scale_fill_viridis_c(option = "G", limits = c(0, 100), direction = -1, na.value = "grey90") +
+  scale_x_continuous(breaks = seq(1750, 2000, 50)) +
+  scale_y_continuous(breaks = seq(0, 100, 20)) +
+  labs(x = "Birth Cohort", y = "Age", fill = "") +
+  theme_graphs() +
+  theme(legend.text = element_text(size = 14),
+        legend.key.height = unit(1, "cm"),
+        legend.key.width = unit(1.5, "cm"))
+ggsave("Graphs/3_Proportion_Any_Ancestors_Age.jpg",  width = 20, height = 16, dpi = 300)
+ggsave("Graphs/3_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dpi = 300, device = "pdf")
+
+
+# Combine results for the mean number of co-existing ancestors alive by age
+mean_number_age <- results %>%
+  map("mean_number_age") %>%
+  bind_rows()
+save(mean_number_age, file = "mean_number_age.RData")
+
+# Check number of NAs, minimum and maximum
+mean_number_age %>%
+  summarise(n_missing_prop = sum(is.na(mean_number)),
+            min_number = min(mean_number, na.rm = TRUE),
+            max_number = max(mean_number, na.rm = TRUE))
+
+# Plot the mean number of co-existing ancestors by age
+mean_number_age %>%
+  filter(kin_type != "Greatgreatgrandmothers" & kin_type != "Greatgreatgrandfathers") %>% 
+  mutate(kin_type = factor(kin_type, 
+                           levels = c("Greatgreatgrandmothers", "Greatgreatgrandfathers", 
+                                      "Greatgrandmothers", "Greatgrandfathers",
+                                      "Grandmothers", "Grandfathers",
+                                      "Mother", "Father"))) %>% 
+  ggplot(aes(x = dob_ego_year, y = age, fill = mean_number)) +
+  geom_tile(linewidth = 0) + 
+  facet_wrap(~ kin_type, ncol =2, axes = "all") +
+  scale_fill_viridis_c(option = "F", na.value = "grey90", direction = -1, limits = c(0, 2)) +
+  scale_x_continuous(breaks = seq(1750, 2000, 50)) +
+  scale_y_continuous(breaks = seq(0, 100, 20)) +
+  labs(x = "Birth Cohort", y = "Age", fill = "") +
+  theme_graphs() +
+  theme(legend.text = element_text(size = 14),
+        legend.key.height = unit(1, "cm"),
+        legend.key.width = unit(1, "cm"))
+ggsave("Graphs/5_Number_Coexisting_Ancestors_Age.jpg", width = 20, height = 16, dpi = 300)
+ggsave("Graphs/5_Number_Coexisting_Ancestors_Age.pdf", width = 20, height = 16, dpi = 300, device = "pdf")
+
+
+## Calculate overlap with all ancestors by cohort and ancestors' generation ----
 overlap_all <- overlap_all_ego %>% 
   # Aggregate by cohort and kin_type (sum across ancestors)
   group_by(dob_ego_year, kin_type) %>%
@@ -182,11 +348,14 @@ overlap_all %>%
         theme(legend.title=element_blank(),
               strip.text = element_text(size = 22))) %>% 
   cowplot::plot_grid(plotlist = .)
-ggsave(file="Graphs/3_Overlap_All_Ancestors.jpeg", width=20, height=18, dpi=300)
-ggsave(file="Graphs/3_Overlap_All_Ancestors.pdf", width=20, height=18, dpi=300, device = "pdf")
+ggsave(file="Graphs/4_Overlap_All_Ancestors.jpeg", width=20, height=18, dpi=300)
+ggsave(file="Graphs/4_Overlap_All_Ancestors.pdf", width=20, height=18, dpi=300, device = "pdf")
 
 
-#### Calculate overlap per ancestors generation by cohort
+
+
+#### Calculate overlap per ancestors generation by cohort ----
+
 overlap_per_gen <- overlap_all %>% 
   # Sum mean overlap years per cohort and kin_type (grouping ancestors of same kin_type2)
   group_by(dob_ego_year, kin_type2) %>%
@@ -221,5 +390,5 @@ overlap_per_gen %>%
         theme(legend.title=element_blank(),
               strip.text = element_text(size = 22))) %>% 
   cowplot::plot_grid(plotlist = .)
-ggsave(file="Graphs/6_Overlap_Per_Ancestors.jpeg", width=20, height=9, dpi=300)
-ggsave(file="Graphs/6_Overlap_Per_Ancestors.pdf", width=20, height=9, dpi=300, device = "pdf")
+ggsave(file="Graphs/App_Overlap_Per_Ancestors.jpeg", width=20, height=9, dpi=300)
+ggsave(file="Graphs/App_Overlap_Per_Ancestors.pdf", width=20, height=9, dpi=300, device = "pdf")
