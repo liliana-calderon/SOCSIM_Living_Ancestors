@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 11-02-2026
+# Last modified on 12-02-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -221,11 +221,32 @@ prop_any_age <- results %>%
   bind_rows()
 save(prop_any_age, file = "prop_any_age.RData")
 
+load("prop_any_age.RData")
+
 # Check number of NAs, minimum and maximum
 prop_any_age %>% 
   summarise(n_missing_prop = sum(is.na(prop_any)),
             min_prop = min(prop_any, na.rm = TRUE),
             max_prop = max(prop_any, na.rm = TRUE))
+
+# Check the maximum age until which a low proportion of individuals overlap with ancestors by cohorts
+prop_any_age %>% 
+  # filter(dob_ego_year < 1800) %>% 
+  # filter(dob_ego_year >= 1800 & dob_ego_year < 1900) %>% 
+  #filter(dob_ego_year < 1850) %>% 
+  filter(dob_ego_year >= 1850 & dob_ego_year < 1900) %>% 
+  # filter(dob_ego_year > 1900) %>% 
+  # filter(dob_ego_year > 1950) %>% 
+  # filter(dob_ego_year == 2000) %>% 
+ # filter(kin_type %in% c("Mother", "Father")) %>% 
+  filter(kin_type %in% c("Grandmothers", "Grandfathers")) %>% 
+  filter(prop_any > 0.05) %>% 
+  group_by(kin_type, dob_ego_year) %>% 
+  summarise(threshold = max(age),
+            .groups = "drop") %>% 
+  group_by(kin_type) %>% 
+  summarise(threshold = mean(threshold))
+
 
 # Plot proportion of individuals with at least one living ancestor by age
 prop_any_age %>% 
