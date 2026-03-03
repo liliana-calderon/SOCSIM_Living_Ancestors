@@ -98,7 +98,7 @@ overlap_any %>%
           max = max(mean_overlap_years_any), 
           range = max - min)
   
-# Plot overlap with any living ancestors
+# Plot overlap with any living ancestors, facetted by sex
 overlap_any %>% 
   mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
                       "Female Ancestors", "Male Ancestors")) %>%
@@ -114,6 +114,30 @@ overlap_any %>%
         theme(legend.title=element_blank(),
               strip.text = element_text(size = 22))) %>% 
   cowplot::plot_grid(plotlist = .)
+
+
+# Plot overlap with any living ancestors
+overlap_any %>% 
+  mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
+                      "Female", "Male"),
+         Generation = case_when(kin_type %in% c("Mother","Father" ) ~ "Parents",
+                                kin_type %in% c("Grandmothers","Grandfathers" ) ~ "Grandparents",
+                                kin_type %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ "Greatgrandparents",
+                                kin_type %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ "Greatgreatgrandparents",
+                                TRUE ~ NA), 
+         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
+                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>% 
+  ggplot(aes(x= dob_ego_year, mean_overlap_years_any, group = kin_type,colour = Generation, linetype = Sex)) +
+        geom_line(linewidth = 1) +
+        scale_colour_viridis_d(option = "D", direction =-1)+
+        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+        scale_y_continuous(breaks = c(0, 20, 40, 60), limits = c(0, 60))+
+        labs(x = "Birth Cohort", y = "Mean years of overlap with any ancestors generation", 
+             colour = "Ancestors' Generation", linetype = "Ancestors' Sex") +
+  guides(colour = guide_legend(order = 1),
+         linetype = guide_legend(order = 2))+
+        theme_graphs() +
+        theme(strip.text = element_text(size = 22))
 ggsave(file="Graphs/2_Overlap_Any_Ancestors.jpeg", width=20, height=9, dpi=300)
 ggsave(file="Graphs/2_Overlap_Any_Ancestors.pdf", width=20, height=9, dpi=300, device = "pdf")
 
@@ -257,17 +281,29 @@ prop_any_age %>%
                            levels = c("Greatgrandmothers", "Greatgrandfathers",
                                       "Grandmothers", "Grandfathers",
                                       "Mother", "Father"))) %>% 
-  ggplot(aes(x = dob_ego_year, y = age, fill = prop_any)) +
-  geom_tile(linewidth = 0) + 
+  ggplot(aes(x = dob_ego_year, y = age)) +
+  geom_tile(aes(fill = prop_any), linewidth = 0) + 
+  geom_contour(aes(z = prop_any), 
+               breaks = c(5, 50, 95), 
+               color = "#FFFFFF", 
+               linewidth = 0.6) +
+  metR::geom_text_contour(aes(z = prop_any, label = after_stat(paste0(level, "%"))), 
+                          breaks = c(5, 50, 95),
+                          color = "black",
+                          size = 4,
+                          stroke = 0.2,
+                          skip = 0, 
+                          na.rm = TRUE) +
   facet_wrap(~ kin_type, ncol =2, axes = "all") +
-  scale_fill_viridis_c(option = "G", limits = c(0, 100), direction = -1, na.value = "grey90") +
+  scale_fill_viridis_c(option = "G", limits = c(0, 100), direction = -1, 
+                       na.value = "grey90", labels = scales::label_number(suffix = "%")) +
   scale_x_continuous(breaks = seq(1750, 2000, 50)) +
   scale_y_continuous(breaks = seq(0, 100, 20)) +
-  labs(x = "Birth Cohort", y = "Age", fill = "") +
+  labs(x = "Birth Cohort", y = "Age", fill = "Proportion") +
   theme_graphs() +
   theme(legend.text = element_text(size = 14),
         legend.key.height = unit(1, "cm"),
-        legend.key.width = unit(1.5, "cm"))
+        legend.key.width = unit(2, "cm"))
 ggsave("Graphs/3_Proportion_Any_Ancestors_Age.jpg",  width = 20, height = 16, dpi = 300)
 ggsave("Graphs/3_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dpi = 300, device = "pdf")
 
@@ -277,6 +313,9 @@ mean_number_age <- results %>%
   map("mean_number_age") %>%
   bind_rows()
 save(mean_number_age, file = "mean_number_age.RData")
+
+# Load mean number of ancestors by age 
+load("mean_number_age.RData")
 
 # Check number of NAs, minimum and maximum
 mean_number_age %>%
@@ -292,17 +331,28 @@ mean_number_age %>%
                                       "Greatgrandmothers", "Greatgrandfathers",
                                       "Grandmothers", "Grandfathers",
                                       "Mother", "Father"))) %>% 
-  ggplot(aes(x = dob_ego_year, y = age, fill = mean_number)) +
-  geom_tile(linewidth = 0) + 
+  ggplot(aes(x = dob_ego_year, y = age)) +
+  geom_tile(aes(fill = mean_number), linewidth = 0) + 
+  geom_contour(aes(z = mean_number), 
+               breaks = c(0.01, 0.5, 0.99, 1.5), 
+               color = "#FFFFFF", 
+               linewidth = 0.6) +
+  metR::geom_text_contour(aes(z = mean_number),
+                          breaks = c(0.01, 0.5, 0.99, 1.5),
+                          color = "black",
+                          size = 4,
+                          skip = 0,
+                          stroke = 0.2,
+                          na.rm = TRUE) +
   facet_wrap(~ kin_type, ncol =2, axes = "all") +
   scale_fill_viridis_c(option = "F", na.value = "grey90", direction = -1, limits = c(0, 2)) +
   scale_x_continuous(breaks = seq(1750, 2000, 50)) +
   scale_y_continuous(breaks = seq(0, 100, 20)) +
-  labs(x = "Birth Cohort", y = "Age", fill = "") +
+  labs(x = "Birth Cohort", y = "Age", fill = "Co-existing Ancestors") +
   theme_graphs() +
   theme(legend.text = element_text(size = 14),
         legend.key.height = unit(1, "cm"),
-        legend.key.width = unit(1, "cm"))
+        legend.key.width = unit(2, "cm"))
 ggsave("Graphs/5_Number_Coexisting_Ancestors_Age.jpg", width = 20, height = 16, dpi = 300)
 ggsave("Graphs/5_Number_Coexisting_Ancestors_Age.pdf", width = 20, height = 16, dpi = 300, device = "pdf")
 
