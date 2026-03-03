@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 27-10-2025
-# Last modified on 05-02-2026
+# Last modified on 03-03-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 
@@ -81,7 +81,7 @@ mean_ancestors_birth <- ancestors2 %>%
          mean_ancestors = n_kin / n_ego) %>%
   ungroup()
   
-# Plot mean number of ancestors alive at birth
+# Plot mean number of ancestors alive at birth, facetted by sex
 mean_ancestors_birth %>% 
   filter(kin_type != "Ego") %>% 
   mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
@@ -97,6 +97,29 @@ mean_ancestors_birth %>%
         labs(x = "Birth Cohort", y = "Mean Number Alive at Birth", colour = "Ancestor")+
         theme(legend.title=element_blank())) %>% 
   cowplot::plot_grid(plotlist = .)
+
+# Plot mean number of ancestors alive at birth
+mean_ancestors_birth %>% 
+  filter(kin_type != "Ego") %>% 
+  mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
+                      "Female", "Male"),
+         Generation = case_when(kin_type %in% c("Mother","Father" ) ~ "Parents",
+                                kin_type %in% c("Grandmothers","Grandfathers" ) ~ "Grandparents",
+                                kin_type %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ "Greatgrandparents",
+                                kin_type %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ "Greatgreatgrandparents",
+                                TRUE ~ NA), 
+         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
+                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>% 
+  ggplot(aes(x= dob_ego_year, mean_ancestors, group = kin_type, colour = Generation, linetype = Sex)) +
+  geom_line(linewidth = 1) +
+  theme_graphs() +
+  scale_color_viridis_d(option = "D", direction =-1)+
+  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+  scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2), limits = c(0, 2))+
+  labs(x = "Birth Cohort", y = "Mean Number Alive at Birth", 
+       colour = "Ancestors' Generation", linetype = "Ancestors' Sex") +
+  guides(colour = guide_legend(order = 1),
+         linetype = guide_legend(order = 2))
 ggsave(file="Graphs/1_Mean_Number_Ancestors_Birth.jpeg", width=20, height=9, dpi=300)
 ggsave(file="Graphs/1_Mean_Number_Ancestors_Birth.pdf", width=20, height=9, dpi=300, device = "pdf")
 
@@ -121,8 +144,7 @@ mean_ancestors_birth %>%
   geom_line(linewidth = 1) +
   theme_graphs() +
   scale_color_viridis_d(option = "D", direction =-1)+
-  labs(x = "Birth Cohort", y = "Sex Gap in the Mean Number Alive at Birth", colour = "Ancestor") +
-  theme(legend.title=element_blank())
+  labs(x = "Birth Cohort", y = "Sex Gap in the Mean Number Alive at Birth", colour = "Ancestors' Generation")
 ggsave(file="Graphs/App_Mean_Number_Ancestors_Birth_Sex_Gap.jpeg", width=20, height=9, dpi=300)
 ggsave(file="Graphs/App_Mean_Number_Ancestors_Birth_Sex_Gap.pdf", width=20, height=9, dpi=300, device = "pdf")
 
