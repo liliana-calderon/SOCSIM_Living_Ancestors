@@ -55,7 +55,7 @@ ancestors <- retrieve_ancestors(opop = opop, egos = egos)
 save(ancestors, file = "ancestors.RData")
 
 
-# Load data of ancestors
+## Load data of ancestors
 load("ancestors.RData")
 
 # Add sex and dates of birth and death of egos and their ancestors
@@ -77,8 +77,8 @@ mean_ancestors_birth <- ancestors2 %>%
   count(dob_ego_year, kin_type, name = "n_kin") %>%
   group_by(dob_ego_year) %>%
   # Add number of egos as denominator for all kin_types
-  mutate(n_ego = n_kin[kin_type == "Ego"], 
-         mean_ancestors = n_kin / n_ego) %>%
+  mutate(n_egos = n_kin[kin_type == "Ego"], 
+         mean_ancestors = n_kin / n_egos) %>%
   ungroup()
   
 # Plot mean number of ancestors alive at birth, facetted by sex
@@ -126,7 +126,7 @@ ggsave(file="Graphs/1_Mean_Number_Ancestors_Birth.pdf", width=20, height=9, dpi=
 
 # Plot the sex gap in the mean number of ancestors alive at birth
 mean_ancestors_birth %>% 
-  select(-c(n_kin, n_ego)) %>% 
+  select(-c(n_kin, n_egos)) %>% 
   filter(kin_type != "Ego") %>% 
   mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
                       "Female", "Male"),
@@ -150,7 +150,7 @@ ggsave(file="Graphs/App_Mean_Number_Ancestors_Birth_Sex_Gap.pdf", width=20, heig
 
 
 mean_ancestors_birth %>% 
-  select(-c(n_kin, n_ego)) %>% 
+  select(-c(n_kin, n_egos)) %>% 
   filter(kin_type != "Ego") %>% 
   mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
                       "Female", "Male"),

@@ -89,10 +89,10 @@ overlap_any <- overlap_all_ego %>%
   # Add count of distinct egos per birth year
   left_join(overlap_all_ego %>%
               distinct(dob_ego_year, pid_ego) %>%
-              count(dob_ego_year, name = "n_ego"), 
+              count(dob_ego_year, name = "n_egos"), 
             by = "dob_ego_year") %>%
   # Calculate mean overlap with any ancestor in months and years
-  mutate(mean_overlap_months_any = sum_overlap_months_any / n_ego,
+  mutate(mean_overlap_months_any = sum_overlap_months_any / n_egos,
          mean_overlap_years_any  = mean_overlap_months_any / 12)
 
 overlap_any %>% 
@@ -208,9 +208,9 @@ estimates_cohort_age <- function(cohort_start, cohort_end) {
     # Add number of egos by cohort and age
     left_join(ego_ages_cohort %>%
                 distinct(dob_ego_year, age, pid_ego) %>%
-                count(dob_ego_year, age, name = "n_ego"), 
+                count(dob_ego_year, age, name = "n_egos"), 
               by = c("dob_ego_year", "age")) %>%
-    mutate(prop_any = if_else(is.na(n_ego), NA_real_, n_with_any / n_ego))
+    mutate(prop_any = if_else(is.na(n_egos), NA_real_, n_with_any / n_egos))
   
   # Calculate mean number of ancestors alive at each age
   mean_number_age <- ego_age_ancestors %>%
@@ -228,9 +228,9 @@ estimates_cohort_age <- function(cohort_start, cohort_end) {
     # Add number of egos by cohort and age
     left_join(ego_ages_cohort %>%
                 distinct(dob_ego_year, age, pid_ego) %>%
-                count(dob_ego_year, age, name = "n_ego"), 
+                count(dob_ego_year, age, name = "n_egos"), 
               by = c("dob_ego_year", "age")) %>% 
-    mutate(mean_number = if_else(is.na(n_ego), NA_real_, sum_alive / n_ego))
+    mutate(mean_number = if_else(is.na(n_egos), NA_real_, sum_alive / n_egos))
   
   # Return both results
   return(list(prop_any_age = prop_any_age, 
@@ -369,10 +369,10 @@ overlap_all <- overlap_all_ego %>%
   # Add count of distinct egos per birth year
   left_join(overlap_all_ego %>%
               distinct(dob_ego_year, pid_ego) %>%
-              count(dob_ego_year, name = "n_ego"), 
+              count(dob_ego_year, name = "n_egos"), 
             by = "dob_ego_year") %>%
   # Calculate mean overlap in months and years
-  mutate(mean_overlap_months_all = sum_overlap_months_all / n_ego,
+  mutate(mean_overlap_months_all = sum_overlap_months_all / n_egos,
          mean_overlap_years_all = mean_overlap_months_all / 12) %>% 
   recode_ancestors_sex2()
 
