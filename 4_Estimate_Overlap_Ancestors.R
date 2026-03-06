@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------------------------------
 # SOCSIM - SOCSIM Living Ancestors - Estimate Overlap Ancestors
-# U:/SOCSIM/SOCSIM_Living_Ancestors/2_Estimate_Ancestors.R
+# U:/SOCSIM/SOCSIM_Living_Ancestors/4_Estimate_Ancestors.R
 
 ## Estimate overlap with living ancestors from a SOCSIM microsimulation for Sweden (1751-2100)
 
@@ -141,8 +141,8 @@ overlap_any %>%
          linetype = guide_legend(order = 2))+
         theme_graphs() +
         theme(strip.text = element_text(size = 22))
-ggsave(file="Graphs/2_Overlap_Any_Ancestors.jpeg", width=20, height=9, dpi=300)
-ggsave(file="Graphs/2_Overlap_Any_Ancestors.pdf", width=20, height=9, dpi=300, device = "pdf")
+ggsave(file="Graphs/3_Overlap_Any_Ancestors.jpeg", width=20, height=9, dpi=300)
+ggsave(file="Graphs/3_Overlap_Any_Ancestors.pdf", width=20, height=9, dpi=300, device = "pdf")
 
 
 ## Calculate age-specific estimates of overlap with any/all ancestors by cohort ----
@@ -307,8 +307,8 @@ prop_any_age %>%
   theme(legend.text = element_text(size = 14),
         legend.key.height = unit(1, "cm"),
         legend.key.width = unit(2, "cm"))
-ggsave("Graphs/3_Proportion_Any_Ancestors_Age.jpg",  width = 20, height = 16, dpi = 300)
-ggsave("Graphs/3_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dpi = 300, device = "pdf")
+ggsave("Graphs/4_Proportion_Any_Ancestors_Age.jpg",  width = 20, height = 16, dpi = 300)
+ggsave("Graphs/4_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dpi = 300, device = "pdf")
 
 
 # Combine results for the mean number of co-existing ancestors alive by age
@@ -356,8 +356,8 @@ mean_number_age %>%
   theme(legend.text = element_text(size = 14),
         legend.key.height = unit(1, "cm"),
         legend.key.width = unit(2, "cm"))
-ggsave("Graphs/5_Number_Coexisting_Ancestors_Age.jpg", width = 20, height = 16, dpi = 300)
-ggsave("Graphs/5_Number_Coexisting_Ancestors_Age.pdf", width = 20, height = 16, dpi = 300, device = "pdf")
+ggsave("Graphs/6_Number_Coexisting_Ancestors_Age.jpg", width = 20, height = 16, dpi = 300)
+ggsave("Graphs/6_Number_Coexisting_Ancestors_Age.pdf", width = 20, height = 16, dpi = 300, device = "pdf")
 
 
 ## Calculate overlap with all ancestors by cohort and ancestors' generation ----
@@ -460,8 +460,8 @@ overlap_all_m <- overlap_all %>%
 
 # Combine plots 
 cowplot::plot_grid(overlap_all_f, overlap_all_m, ncol = 2)
-ggsave(file="Graphs/4_Overlap_All_Ancestors.jpeg", width=20, height=18, dpi=300)
-ggsave(file="Graphs/4_Overlap_All_Ancestors.pdf", width=20, height=18, dpi=300, device = "pdf")
+ggsave(file="Graphs/5_Overlap_All_Ancestors.jpeg", width=20, height=18, dpi=300)
+ggsave(file="Graphs/5_Overlap_All_Ancestors.pdf", width=20, height=18, dpi=300, device = "pdf")
 
 
 #### Calculate overlap per ancestors generation by cohort ----
