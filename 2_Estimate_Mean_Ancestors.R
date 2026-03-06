@@ -20,7 +20,7 @@ options(scipen=999999)
 ## Load packages 
 library(tidyverse)
 library(viridis)
-library(cowplot) # For separate legends of facetted plots
+library(cowplot) # For separate legends of faceted plots
 #library(ggh4x)  # To facet scales-
 #library(patchwork) # To combine ggplots
 #library(svglite) # To save svg files
@@ -54,6 +54,8 @@ length(egos) # 2845816
 ancestors <- retrieve_ancestors(opop = opop, egos = egos) 
 save(ancestors, file = "ancestors.RData")
 
+#------------------------------------------------------------------------------------------------------
+## Calculate mean number of ancestors alive at birth----
 
 ## Load data of ancestors
 load("ancestors.RData")
@@ -81,7 +83,7 @@ mean_ancestors_birth <- ancestors2 %>%
          mean_ancestors = n_kin / n_egos) %>%
   ungroup()
   
-# Plot mean number of ancestors alive at birth, facetted by sex
+# Plot mean number of ancestors alive at birth, faceted by sex
 mean_ancestors_birth %>% 
   filter(kin_type != "Ego") %>% 
   mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
@@ -98,7 +100,7 @@ mean_ancestors_birth %>%
         theme(legend.title=element_blank())) %>% 
   cowplot::plot_grid(plotlist = .)
 
-# Plot mean number of ancestors alive at birth
+# Plot mean number of ancestors alive at birth, with both sexes on the same figure
 mean_ancestors_birth %>% 
   filter(kin_type != "Ego") %>% 
   mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
@@ -145,10 +147,8 @@ mean_ancestors_birth %>%
   theme_graphs() +
   scale_color_viridis_d(option = "D", direction =-1)+
   labs(x = "Birth Cohort", y = "Sex Gap in the Mean Number Alive at Birth", colour = "Ancestors' Generation")
-ggsave(file="Graphs/App_Mean_Number_Ancestors_Birth_Sex_Gap.jpeg", width=20, height=9, dpi=300)
-ggsave(file="Graphs/App_Mean_Number_Ancestors_Birth_Sex_Gap.pdf", width=20, height=9, dpi=300, device = "pdf")
 
-
+# Check mean sex gap in the mean number of ancestors alive at birth of cohorts born before 1850
 mean_ancestors_birth %>% 
   select(-c(n_kin, n_egos)) %>% 
   filter(kin_type != "Ego") %>% 
