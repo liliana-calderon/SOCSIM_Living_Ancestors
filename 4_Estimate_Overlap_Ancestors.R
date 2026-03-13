@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 04-03-2026
+# Last modified on 13-03-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -276,6 +276,16 @@ prop_any_age %>%
 
 
 # Plot proportion of individuals with at least one living ancestor by age
+
+# Define y scales
+
+y_scales_by_generation <- list(Greatgrandmothers = scale_y_continuous(limits = c(0, 40),  breaks = seq(0, 40, 20)),
+                               Greatgrandfathers = scale_y_continuous(limits = c(0, 40),  breaks = seq(0, 40, 20)),
+                               Grandmothers      = scale_y_continuous(limits = c(0, 60),  breaks = seq(0, 60, 20)),
+                               Grandfathers      = scale_y_continuous(limits = c(0, 60),  breaks = seq(0, 60, 20)),
+                               Mother            = scale_y_continuous(limits = c(0, 80), breaks = seq(0, 80, 20)),
+                               Father            = scale_y_continuous(limits = c(0, 80), breaks = seq(0, 80, 20)))
+
 prop_any_age %>% 
   filter(dob_ego_year > 1750) %>% 
   filter(kin_type != "Greatgreatgrandmothers" & kin_type != "Greatgreatgrandfathers") %>% 
@@ -297,7 +307,8 @@ prop_any_age %>%
                           stroke = 0.2,
                           skip = 0, 
                           na.rm = TRUE) +
-  facet_wrap(~ kin_type, ncol =2, axes = "all") +
+  facet_wrap(~ kin_type, ncol = 2, axes = "all", scales = "free_y") +
+  facetted_pos_scales(y = y_scales_by_generation) +
   scale_fill_viridis_c(option = "G", limits = c(0, 100), direction = -1, 
                        na.value = "grey90", labels = scales::label_number(suffix = "%")) +
   scale_x_continuous(breaks = seq(1750, 2000, 50)) +
@@ -347,7 +358,8 @@ mean_number_age %>%
                           skip = 0,
                           stroke = 0.2,
                           na.rm = TRUE) +
-  facet_wrap(~ kin_type, ncol =2, axes = "all") +
+  facet_wrap(~ kin_type, ncol = 2, axes = "all", scales = "free_y") +
+  facetted_pos_scales(y = y_scales_by_generation) +
   scale_fill_viridis_c(option = "F", na.value = "grey90", direction = -1, limits = c(0, 2)) +
   scale_x_continuous(breaks = seq(1750, 2000, 50)) +
   scale_y_continuous(breaks = seq(0, 100, 20)) +
@@ -376,7 +388,7 @@ overlap_all <- overlap_all_ego %>%
          mean_overlap_years_all = mean_overlap_months_all / 12) %>% 
   recode_ancestors_sex2()
 
-# Calculate maximum for each generation
+# Calculate maximum overlap for each generation
 generation_max <- overlap_all %>% 
   group_by(kin_type2, dob_ego_year) %>%
   summarise(sum_overlap_years_gen = sum(mean_overlap_years_all, na.rm = TRUE), .groups = "drop") %>% 
