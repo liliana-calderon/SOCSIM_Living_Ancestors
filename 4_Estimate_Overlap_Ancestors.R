@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 13-03-2026
+# Last modified on 18-03-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -246,9 +246,9 @@ results <- map(1751:2000, ~ estimates_cohort_age(.x, .x),
 prop_any_age <- results %>%
   map("prop_any_age") %>%
   bind_rows()
-save(prop_any_age, file = "prop_any_age.RData")
+save(prop_any_age, file = "Measures/prop_any_age.RData")
 
-load("prop_any_age.RData")
+load("Measures/prop_any_age.RData")
 
 # Check number of NAs, minimum and maximum
 prop_any_age %>% 
@@ -326,10 +326,10 @@ ggsave("Graphs/4_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dp
 mean_number_age <- results %>%
   map("mean_number_age") %>%
   bind_rows()
-save(mean_number_age, file = "mean_number_age.RData")
+save(mean_number_age, file = "Measures/mean_number_age.RData")
 
 # Load mean number of ancestors by age 
-load("mean_number_age.RData")
+load("Measures/mean_number_age.RData")
 
 # Check number of NAs, minimum and maximum
 mean_number_age %>%
