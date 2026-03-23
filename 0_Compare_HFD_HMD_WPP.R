@@ -7,7 +7,7 @@
 # for the overlapping period 1950-2023 
 
 # Created on 15-10-2025
-# Last modified on 03-02-2026
+# Last modified on 23-03-2026
 #----------------------------------------------------------------------------------------------------
 ## Global Settings ----
 
@@ -181,7 +181,7 @@ bind_rows(HFD %>% rename(Estimate = ASFR),
   ggplot(aes(x = Age, y = Estimate))+
   facet_wrap(. ~ Rate, scales = "free") + 
   geom_line(aes(colour = Year, linetype = Source, group = interaction(Year, Source)), linewidth = 1.5)+ 
-  scale_color_manual(values = c("#E69F00", "#009E73", "#2779B7", "#CC79A7"))+
+  scale_color_manual(values = c("#5079B7", "#845098", "#B72779", "#AB3295"))+
   scale_linetype_manual(values = c("dotted", "dotted", "solid"))+
   facetted_pos_scales(y = list("Age-Specific Fertility Rates" = NULL,
                                "Age-Specific Mortality Rates" =  scale_y_continuous(trans = "log10")))+

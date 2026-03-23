@@ -9,14 +9,14 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 14-10-2025
-# Last modified on 30-10-2025
+# Last modified on 23-03-2026
 
 ## Based on code prepared for the microsimulation vs registers paper
 # U:/SOCSIM/SOCSIM_Registers/1_Compare_Input_Output.R
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 # Prevent scientific notation (useful for the rate calculation)
-options(scipen=999999)
+options(scipen=9999)
 
 ## Load packages 
 library(tidyverse)
@@ -113,8 +113,8 @@ bind_rows(asfr %>%
   facet_wrap(. ~ rate, scales = "free") + 
   facetted_pos_scales(y = list(ASFR = scale_y_continuous(),
                                ASMR =  scale_y_continuous(trans = "log10"))) +
-  theme_graphs() +
-  scale_color_manual(values = c("#B76527", "#79B727", "#2779B7", "#6527B7"))+ 
+  theme_graphs() + 
+  scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   labs(x = "Age", y = "Estimate")
 ggsave(file="Graphs/ASFR_ASMR_SOCSIM.jpeg", width=17, height=9, dpi=300)
@@ -204,7 +204,7 @@ bind_rows(Input_fert, SocsimF0) %>%
   filter(year %in% yrs_plot) %>% 
   ggplot(aes(x = age, y = ASFR, group = interaction(year, Source)))+
   geom_line(aes(colour = year, linetype = Source), linewidth = 1.2)+
-  scale_color_manual(values = c("#B76527", "#79B727", "#2779B7", "#6527B7"))+ 
+  scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
   scale_linetype_manual(values = c("HFC/HFD/WPP" = "dotted", "SOCSIM" = "solid")) +
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   theme_graphs()
@@ -289,7 +289,7 @@ bind_rows(Input_mort, SocsimM) %>%
   facet_wrap(~Sex) +
   geom_line(aes(colour = year, linetype = Source), linewidth = 1.3)+
   scale_y_log10() +
-  scale_color_manual(values = c("#B76527", "#79B727", "#2779B7", "#6527B7"))+ 
+  scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
   scale_linetype_manual(values = c("HMD/WPP" = "dotted", "SOCSIM" = "solid")) +
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   theme_graphs()
@@ -318,13 +318,14 @@ bind_rows(Input_fert %>% rename(Estimate = ASFR),
   filter(Sex == "Female") %>% 
   mutate(Year = year,
          age = factor(as.character(age), levels = age_levels), 
+         # Change this to avoid confusion with the //// !!!
          Source = ifelse(Source == "SOCSIM", "SOCSIM", "HFC/HFD/HMD/WPP"), 
          Rate = ifelse(Rate == "ASFR", "Age-Specific Fertility Rates", "Age-Specific Mortality Rates")) %>%
   filter(Year %in% yrs_plot) %>% 
   ggplot(aes(x = age, y = Estimate, group = interaction(Year, Source)))+
   facet_wrap(. ~ Rate, scales = "free") + 
   geom_line(aes(colour = Year, linetype = Source), linewidth = 1.5)+ 
-  scale_color_manual(values = c("#B76527", "#79B727", "#2779B7", "#6527B7"))+ 
+  scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
   scale_linetype_manual(values = c("dotted", "solid"))+
   facetted_pos_scales(y = list("Age-Specific Fertility Rates" = NULL,
                                "Age-Specific Mortality Rates" =  scale_y_continuous(trans = "log10")))+
