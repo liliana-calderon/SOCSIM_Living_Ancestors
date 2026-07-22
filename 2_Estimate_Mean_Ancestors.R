@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 27-10-2025
-# Last modified on 03-03-2026
+# Last modified on 22-07-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 
@@ -94,7 +94,7 @@ mean_ancestors_birth %>%
         facet_wrap(~Sex)+
         theme_graphs() +
         scale_color_viridis_d(option = "D", direction =-1)+
-        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000))+
         scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2), limits = c(0, 2))+
         labs(x = "Birth Cohort", y = "Mean Number Alive at Birth", colour = "Ancestor")+
         theme(legend.title=element_blank())) %>% 
@@ -116,7 +116,7 @@ mean_ancestors_birth %>%
   geom_line(linewidth = 1) +
   theme_graphs() +
   scale_color_viridis_d(option = "D", direction =-1)+
-  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000))+
   scale_y_continuous(breaks = c(0, 0.5, 1, 1.5, 2), limits = c(0, 2))+
   labs(x = "Birth Cohort", y = "Mean Number Alive at Birth", 
        colour = "Ancestors' Generation", linetype = "Ancestors' Sex") +
@@ -147,25 +147,3 @@ mean_ancestors_birth %>%
   theme_graphs() +
   scale_color_viridis_d(option = "D", direction =-1)+
   labs(x = "Birth Cohort", y = "Sex Gap in the Mean Number Alive at Birth", colour = "Ancestors' Generation")
-
-# Check mean sex gap in the mean number of ancestors alive at birth of cohorts born before 1850
-mean_ancestors_birth %>% 
-  select(-c(n_kin, n_egos)) %>% 
-  filter(kin_type != "Ego") %>% 
-  mutate(Sex = ifelse(kin_type %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
-                      "Female", "Male"),
-         Generation = case_when(kin_type %in% c("Mother","Father" ) ~ "Parents",
-                                kin_type %in% c("Grandmothers","Grandfathers" ) ~ "Grandparents",
-                                kin_type %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ "Greatgrandparents",
-                                kin_type %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ "Greatgreatgrandparents",
-                                TRUE ~ NA), 
-         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
-                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>% 
-  select(-kin_type) %>% 
-  pivot_wider(names_from = Sex, values_from = mean_ancestors) %>% 
-  mutate(Sex_gap = Female - Male) %>% 
-  filter(dob_ego_year <1850) %>% 
-  select(-c(Female, Male)) %>% 
-  group_by(Generation) %>% 
-  summarise(Sex_gap_mean = mean(Sex_gap, na.rm = T)) %>% 
-  ungroup()
