@@ -37,5 +37,5 @@ z_DT_Nordic/*
 # WPP Data
 Data/*
 
-# Previous results with qx at 100+ 1/12
-z_qx_100+/*
+# Previous results with qx closed at 100
+z_sim_results_qx_100/*
