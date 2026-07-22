@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 18-03-2026
+# Last modified on 22-07-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -110,7 +110,7 @@ overlap_any %>%
         geom_line(linewidth = 1) +
         facet_wrap(~ Sex)+
         scale_colour_viridis_d(option = "D", direction =-1)+
-        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000))+
         scale_y_continuous(breaks = c(0, 20, 40, 60), limits = c(0, 60))+
         labs(x = "Birth Cohort", y = "Mean years of overlap with any ancestors generation", colour = "Ancestor") +
         theme_graphs() +
@@ -133,7 +133,7 @@ overlap_any %>%
   ggplot(aes(x= dob_ego_year, mean_overlap_years_any, group = kin_type, colour = Generation, linetype = Sex)) +
         geom_line(linewidth = 1) +
         scale_colour_viridis_d(option = "D", direction =-1)+
-        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000))+
         scale_y_continuous(breaks = c(0, 20, 40, 60), limits = c(0, 60))+
         labs(x = "Birth Cohort", y = "Mean years of overlap with any ancestors generation", 
              colour = "Ancestors' Generation", linetype = "Ancestors' Sex") +
@@ -260,12 +260,12 @@ prop_any_age %>%
 prop_any_age %>% 
   # filter(dob_ego_year < 1800) %>% 
   # filter(dob_ego_year >= 1800 & dob_ego_year < 1900) %>% 
-  #filter(dob_ego_year < 1850) %>% 
+  # filter(dob_ego_year < 1850) %>% 
   filter(dob_ego_year >= 1850 & dob_ego_year < 1900) %>% 
   # filter(dob_ego_year > 1900) %>% 
   # filter(dob_ego_year > 1950) %>% 
   # filter(dob_ego_year == 2000) %>% 
- # filter(kin_type %in% c("Mother", "Father")) %>% 
+  # filter(kin_type %in% c("Mother", "Father")) %>% 
   filter(kin_type %in% c("Grandmothers", "Grandfathers")) %>% 
   filter(prop_any > 0.05) %>% 
   group_by(kin_type, dob_ego_year) %>% 
@@ -505,7 +505,7 @@ overlap_per_gen %>%
         geom_line(linewidth = 1) +
         facet_wrap(~ Sex)+
         scale_colour_viridis_d(option = "D", direction =-1)+
-        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
+        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000))+
         scale_y_continuous(breaks = c(0, 20, 40, 60), limits = c(0, 60))+
         labs(x = "Birth Cohort", y = "Mean years of overlap per ancestors generation", colour = "Ancestor") +
         theme_graphs() +
