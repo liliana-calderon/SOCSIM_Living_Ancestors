@@ -16,7 +16,7 @@
 ## and read the output into R. 
 
 # Created on 14-10-2025
-# Last modified on 10-11-2025
+# Last modified on 21-07-2026
 #------------------------------------------------------------------------------------------------------
 # SOCSIM simulation: input rates and assumptions ----
 
@@ -67,13 +67,16 @@
 rm(list=ls(all=TRUE))
 
 # Prevent scientific notation
-options(scipen=999999)
+options(scipen=9999)
 
 # Load necessary packages
 library(tidyverse)
 library(readr)
 # install.packages("HMDHFDplus")
 library(HMDHFDplus)
+library(MortalityLaws)
+#install.packages("rsocsim")
+library(rsocsim)
 
 # Load functions to write SOCSIM rate files from HFC, HFD, HMD and WPP
 source("Functions/Functions_Input_Rates.R")
@@ -91,7 +94,7 @@ source("Functions/Functions_Input_Rates.R")
 # The ages below and above [12-14) and [51-56) (available in HFD but not in HFC) are set to 0 
 # The rates are provided by 5 calendar years and hence considered to be constant over each sub-period
 # Additionally, SOCSIM requires a final age category with an upper bound
-# corresponding to the maximum length of life. Here, we fixed it to [56-100]
+# corresponding to the maximum length of life. Here, we fixed it to [56-110]
 
 # To convert the annual rates to monthly rates
 # we assume that the fertility rates are constant over the year and divide them by 12 (months)
@@ -116,7 +119,7 @@ write_socsim_rates_HFC(Country = "SWE",
 # For 1891-2023, we use data from HFD and keep the whole age range [12-55], 
 # but limit the open-ended age intervals 12- and 55+ to one year, i.e. [12-13) and [55-56)
 # Additionally, SOCSIM requires a final age category with an upper bound
-# corresponding to the maximum length of life. Here, we fixed it to [56-100]
+# corresponding to the maximum length of life. Here, we fixed it to [56-110]
 
 # To write the input fertility rate files from HFD, 
 # please type inside the quotes the name of the country as used in HFD) 
@@ -136,12 +139,12 @@ write_socsim_rates_HFD(Country = "SWE",
 # Younger [10-14] and older [50-54] age groups are only provided in the estimates by 5-year age groups. 
 # Hence, the ages below and above [12-14) and [51-56) (available in HFD) are set to 0 
 # Additionally, SOCSIM requires a final age category with an upper bound corresponding to the maximum length of life. 
-# Here, we fixed it to [56-100]
+# Here, we fixed it to [56-110]
 
 # To write the projected input fertility rates from WPP 2024, obtained with "download_WPP2024()", 
 # type the ISO3_code of the country as listed in the WPP 2024. 
 
-write_socsim_fertility_rates_WPP(Country = "SWE", 
+write_socsim_rates_WPP_fertility(Country = "SWE", 
                                  Year_Min = 2024,
                                  Year_Max = 2100) 
 #----------------------------------------------------------------------------------------------------
@@ -186,7 +189,7 @@ write_socsim_rates_HMD(Country = "SWE",
 # To convert the annual WPP probabilities to monthly 'SOCSIM' probabilities, 
 # we assume that the probability of dying is constant over the year 
 # and use the formula $1-(1-_nq_x)^{1/n}$ proposed by Kenneth Watcher. 
-# For the final age interval 100, monthly probabilities are equal to 1.
+# For the final age interval 110, monthly probabilities are equal to 1/12.
 
 # The probabilities of death are identical for all marital status of each sex, 
 # and are only specified for single women and single men in the rate files. 
@@ -200,7 +203,10 @@ write_socsim_rates_HMD(Country = "SWE",
 # and convert to SOCSIM format following the procedure explained above. 
 # To run it, type the ISO_Code3 of the country as listed in the WPP 2024, and the minimum and maximum years
 
-write_socsim_mortality_rates_WPP(Country = "SWE", 
+# To match the HMD mortality rates range (0-110+)
+# we extend the mortality rates for 100-110 based on qx80-99, using the Kannisto model
+
+write_socsim_rates_WPP_mortality(Country = "SWE", 
                                  Year_Min = 2024,
                                  Year_Max = 2100)
 #------------------------------------------------------------------------------------------------------
@@ -267,7 +273,7 @@ supfile <- "Sweden_long.sup"
 
 # Random number generator seed:
 seed <- as.character(sample(1:99999, 1, replace = F))
-# Random seed used for this simulation seed <- "56008"
+# Random seed used for this simulation seed <- "79589"
 
 # Save the seed number to use them later to read the data 
 save(seed, file = "seed.Rda")
@@ -281,8 +287,7 @@ rsocsim::socsim(folder, supfile, seed, process_method = "future")
 end <- Sys.time()
 
 print(end-start)
-
-# Time difference of 2.819996 days for  1 simulation, with initial opop of 50000 and hetfert 0
+# Time difference of 1.802847 hours for  1 simulation, with initial opop of 50000 and hetfert 0
 #----------------------------------------------------------------------------------------------------
 ## Read the output .opop and .omar files ----
 
