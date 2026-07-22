@@ -9,7 +9,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-03-2026
-# Last modified on 06-03-2026
+# Last modified on 22-07-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -109,9 +109,6 @@ plot_multigenerations_birth <- multigenerations_birth %>%
        y = "Proportion (%)", 
        fill = "Number of generations") +
   theme_graphs()
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth.jpeg", width=20, height=9, dpi=300)
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth.pdf", width=20, height=9, dpi=300, device = "pdf")
-
 
 # Calculate (cumulative) distribution of the number of generations (ego and ancestors) alive at age 20
 multigenerations_20 <- ancestors2 %>%
@@ -168,9 +165,6 @@ plot_multigenerations_20 <-
        y = "Proportion (%)", 
        fill = "Number of generations") +
   theme_graphs()
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Age_20.jpeg", width=20, height=9, dpi=300)
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Age_20.pdf", width=20, height=9, dpi=300, device = "pdf")
-
 
 #------------------------------------------------------------------------------------------------------
 ## Calculate non-cumulative distribution of the number of generations (ego and ancestors) alive at birth and age 20 ----
@@ -224,8 +218,6 @@ plot_multigenerations_birth_non_cum <- multigenerations_birth_non_cum %>%
        y = "Proportion (%)", 
        fill = "Number of generations") +
   theme_graphs()
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth_non_cum.jpeg", width=20, height=9, dpi=300)
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth_non_cum.pdf", width=20, height=9, dpi=300, device = "pdf")
 # Compared to the cumulative plot, 2 generations are slightly lower and 3 generations slightly higher
 
 # Calculate (non-cumulative) distribution of the number of generations (ego and ancestors) alive at age 20
@@ -281,9 +273,6 @@ plot_multigenerations_20_non_cum <-
        y = "Proportion (%)", 
        fill = "Number of generations") +
   theme_graphs()
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Age_20_non_cum.jpeg", width=20, height=9, dpi=300)
-#ggsave(file="Graphs/2_Distribution_Generations_Alive_Age_20_non_cum.pdf", width=20, height=9, dpi=300, device = "pdf")
-
 #------------------------------------------------------------------------------------------------------
 ## Combine plots of distributions of the number of generations alive at birth and at age 20 ----
 
