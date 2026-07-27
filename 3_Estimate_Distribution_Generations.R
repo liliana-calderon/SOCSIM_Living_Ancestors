@@ -9,7 +9,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-03-2026
-# Last modified on 22-07-2026
+# Last modified on 23-07-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -281,10 +281,3 @@ cowplot::plot_grid(plot_multigenerations_birth + theme(legend.position = "none")
                    plot_multigenerations_20, nrow = 2)
 ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth_20.jpeg", width=20, height=18, dpi=300)
 ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth_20.pdf", width=20, height=18, dpi=300, device = "pdf")
-
-
-# Combine plots of non-cumulative distributions of the number of generations alive
-cowplot::plot_grid(plot_multigenerations_birth_non_cum + theme(legend.position = "none"), 
-                   plot_multigenerations_20_non_cum, nrow = 2)
-ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth_20_non_cum.jpeg", width=20, height=18, dpi=300)
-ggsave(file="Graphs/2_Distribution_Generations_Alive_Birth_20_non_cum.pdf", width=20, height=18, dpi=300, device = "pdf")
