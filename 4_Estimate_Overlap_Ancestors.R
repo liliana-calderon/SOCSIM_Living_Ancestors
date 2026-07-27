@@ -8,13 +8,13 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 22-07-2026
+# Last modified on 27-07-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
 
 # Prevent scientific notation
-options(scipen=999999)
+options(scipen=9999)
 
 ## Load packages 
 library(tidyverse)
@@ -70,8 +70,6 @@ overlap_all_ego <- ancestors %>%
          overlap_months_ego = pmax(0L, overlap_end - dob_ego),
          dob_ego_year = asYr(dob_ego, last_month, final_sim_year))
 save(overlap_all_ego, file = "Measures/overlap_all_ego.RData")
-
-
 
 ## Calculate overlap with any ancestors by cohort and ancestors' generation ----
 overlap_any <- overlap_all_ego %>%
@@ -256,24 +254,6 @@ prop_any_age %>%
             min_prop = min(prop_any, na.rm = TRUE),
             max_prop = max(prop_any, na.rm = TRUE))
 
-# Check the maximum age until which a low proportion of individuals overlap with ancestors by cohorts
-prop_any_age %>% 
-  # filter(dob_ego_year < 1800) %>% 
-  # filter(dob_ego_year >= 1800 & dob_ego_year < 1900) %>% 
-  # filter(dob_ego_year < 1850) %>% 
-  filter(dob_ego_year >= 1850 & dob_ego_year < 1900) %>% 
-  # filter(dob_ego_year > 1900) %>% 
-  # filter(dob_ego_year > 1950) %>% 
-  # filter(dob_ego_year == 2000) %>% 
-  # filter(kin_type %in% c("Mother", "Father")) %>% 
-  filter(kin_type %in% c("Grandmothers", "Grandfathers")) %>% 
-  filter(prop_any > 0.05) %>% 
-  group_by(kin_type, dob_ego_year) %>% 
-  summarise(threshold = max(age),
-            .groups = "drop") %>% 
-  group_by(kin_type) %>% 
-  summarise(threshold = mean(threshold))
-
 
 # Plot proportion of individuals with at least one living ancestor by age
 
@@ -322,7 +302,112 @@ ggsave("Graphs/4_Proportion_Any_Ancestors_Age.jpg",  width = 20, height = 16, dp
 ggsave("Graphs/4_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dpi = 300, device = "pdf")
 
 
-# Combine results for the mean number of co-existing ancestors alive by age
+## Calculate overlap with all ancestors by cohort and ancestors' generation ----
+overlap_all <- overlap_all_ego %>% 
+  # Aggregate by cohort and kin_type
+  group_by(dob_ego_year, kin_type) %>%
+  summarise(sum_overlap_months_all = sum(overlap_months_ego, na.rm = TRUE),
+            .groups = "drop") %>%
+  # Add count of distinct egos per birth year
+  left_join(overlap_all_ego %>%
+              distinct(dob_ego_year, pid_ego) %>%
+              count(dob_ego_year, name = "n_egos"), 
+            by = "dob_ego_year") %>%
+  # Calculate mean overlap in months and years
+  mutate(mean_overlap_months_all = sum_overlap_months_all / n_egos,
+         mean_overlap_years_all = mean_overlap_months_all / 12) %>% 
+  recode_ancestors_sex2()
+
+# Calculate maximum overlap for each generation
+generation_max <- overlap_all %>% 
+  mutate(generation = case_when(kin_type2 %in% c("Mother","Father" ) ~ 4,
+                                kin_type2 %in% c("Grandmothers","Grandfathers" ) ~ 3,
+                                kin_type2 %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ 2,
+                                kin_type2 %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ 1,
+                                TRUE ~ NA)) %>% 
+  group_by(generation) %>%
+  summarise(max_overlap_gen = max(mean_overlap_years_all, na.rm = TRUE), .groups = "drop")
+
+# Define maximum y breaks for each generation
+y_scales_list <- setNames(lapply(generation_max$max_overlap_gen, function(x) {
+  brks <- pretty(c(0, x), n = 4)    
+  ymax <- max(brks)
+  scale_y_continuous(expand = c(0, 0), limits = c(0, ymax + 0.05 * ymax), breaks = brks)}), 
+  generation_max$generation)
+
+# Order kin types to get maternal side in lighter colours than paternal side
+overlap_all <- overlap_all %>% 
+  mutate(Sex = ifelse(kin_type2 %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
+                      "Female Ancestors", "Male Ancestors"),
+         kin_type = factor(kin_type, levels = c("mom", 
+                                                "mm", "mmm", "mfm", 
+                                                "mmmm", "mmfm", "mfmm", "mffm",  
+                                                "mf", "mmf", "mff",
+                                                "mmmf", "mmff", "mfmf", "mfff",
+                                                "pop",
+                                                "fm", "fmm", "ffm", 
+                                                "fmmm", "fmfm", "ffmm", "fffm", 
+                                                "ff", "fmf", "fff",
+                                                "fmmf", "fmff", "ffmf", "ffff" )))
+
+# Plot Overlap with all Female ancestors
+overlap_all_f <- overlap_all %>%
+  filter(Sex == "Female Ancestors") %>%
+  mutate(Generation = case_when(kin_type2 %in% c("Mother") ~ "Parents",
+                                kin_type2 %in% c("Grandmothers") ~ "Grandparents",
+                                kin_type2 %in% c("Greatgrandmothers") ~ "Greatgrandparents",
+                                kin_type2 %in% c("Greatgreatgrandmothers") ~ "Greatgreatgrandparents",
+                                TRUE ~ NA),
+         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
+                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>%
+  ggplot(aes(x = dob_ego_year, y = mean_overlap_years_all, fill = Generation, group = kin_type)) +
+  geom_area(position = "identity", alpha = 0.35) + 
+  facet_wrap(~ kin_type2, ncol = 1, scales = "free_y")+
+  scale_fill_viridis_d(option = "D", direction = -1) +
+  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000)) +
+  facetted_pos_scales(y = y_scales_list) +
+  labs(x = "Birth Cohort", y = "Mean person-years of overlap with all ancestors", 
+       fill = "Ancestors' Generation") +
+  theme_graphs() +
+  theme(strip.text = element_text(size = 22))
+
+# Plot Overlap with all Male ancestors
+overlap_all_m <- overlap_all %>%
+  filter(Sex == "Male Ancestors") %>%
+  mutate(Generation = case_when(kin_type2 %in% c("Father") ~ "Parents",
+                                kin_type2 %in% c("Grandfathers") ~ "Grandparents",
+                                kin_type2 %in% c("Greatgrandfathers") ~ "Greatgrandparents",
+                                kin_type2 %in% c("Greatgreatgrandfathers") ~ "Greatgreatgrandparents",
+                                TRUE ~ NA),
+         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
+                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>%
+  ggplot(aes(x = dob_ego_year, y = mean_overlap_years_all, fill = Generation, group = kin_type)) +
+  geom_area(position = "identity", alpha = 0.35) +  
+  facet_wrap(~ kin_type2, ncol = 1, scales = "free_y") +
+  scale_fill_viridis_d(option = "D", direction = -1) +
+  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000)) +
+  facetted_pos_scales(y = y_scales_list) +
+  labs(x = "Birth Cohort", 
+       y = "Mean person-years of overlap with all ancestors", 
+       fill = "Ancestors' Generation") +
+  theme_graphs() +
+  theme(strip.text = element_text(size = 22))
+
+# Extract legend
+legend_overlap_all <- get_plot_component(overlap_all_f, 'guide-box-bottom', return_all = TRUE)
+
+# Combine plots for both sexes and remove legends from both panels
+overlap_all_nl <- cowplot::plot_grid(overlap_all_f + theme(legend.position = "none"),
+                                     overlap_all_m + theme(legend.position = "none"), ncol = 2)
+
+# Combine plot with shared legend
+cowplot::plot_grid(overlap_all_nl, legend_overlap_all, ncol = 1, 
+                   rel_heights = c(1, .08))
+ggsave(file="Graphs/5_Overlap_All_Ancestors.jpeg", width=20, height=18, dpi=300)
+ggsave(file="Graphs/5_Overlap_All_Ancestors.pdf", width=20, height=18, dpi=300, device = "pdf")
+
+
+# Combine results for the mean number of co-existing ancestors alive by age ----
 mean_number_age <- results %>%
   map("mean_number_age") %>%
   bind_rows()
@@ -369,177 +454,3 @@ mean_number_age %>%
         legend.key.height = unit(1, "cm"),
         legend.key.width = unit(2, "cm"))
 ggsave("Graphs/6_Number_Coexisting_Ancestors_Age.jpg", width = 20, height = 16, dpi = 300)
-ggsave("Graphs/6_Number_Coexisting_Ancestors_Age.pdf", width = 20, height = 16, dpi = 300, device = "pdf")
-
-
-## Calculate overlap with all ancestors by cohort and ancestors' generation ----
-overlap_all <- overlap_all_ego %>% 
-  # Aggregate by cohort and kin_type (sum across ancestors)
-  group_by(dob_ego_year, kin_type) %>%
-  summarise(sum_overlap_months_all = sum(overlap_months_ego, na.rm = TRUE),
-            .groups = "drop") %>%
-  # Add count of distinct egos per birth year
-  left_join(overlap_all_ego %>%
-              distinct(dob_ego_year, pid_ego) %>%
-              count(dob_ego_year, name = "n_egos"), 
-            by = "dob_ego_year") %>%
-  # Calculate mean overlap in months and years
-  mutate(mean_overlap_months_all = sum_overlap_months_all / n_egos,
-         mean_overlap_years_all = mean_overlap_months_all / 12) %>% 
-  recode_ancestors_sex2()
-
-# Calculate maximum overlap for each generation
-generation_max <- overlap_all %>% 
-  group_by(kin_type2, dob_ego_year) %>%
-  summarise(sum_overlap_years_gen = sum(mean_overlap_years_all, na.rm = TRUE), .groups = "drop") %>% 
-  mutate(generation = case_when(kin_type2 %in% c("Mother","Father" ) ~ 4,
-                                kin_type2 %in% c("Grandmothers","Grandfathers" ) ~ 3,
-                                kin_type2 %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ 2,
-                                kin_type2 %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ 1,
-                                TRUE ~ NA)) %>% 
-  group_by(generation) %>%
-  summarise(max_overlap_gen = max(sum_overlap_years_gen, na.rm = TRUE), .groups = "drop")
-
-# Define maximum y breaks for each generation
-y_scales_list <- setNames(lapply(generation_max$max_overlap_gen, function(x) {
-  brks <- pretty(c(0, x), n = 4)    
-  ymax <- max(brks)
-  scale_y_continuous(expand = c(0, 0), limits = c(0, ymax + 0.1 * ymax), breaks = brks)}), 
-  generation_max$generation)
-
-# Order kin types to get maternal side in lighter colours than paternal side
-overlap_all <- overlap_all %>% 
-  mutate(Sex = ifelse(kin_type2 %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
-                      "Female Ancestors", "Male Ancestors"),
-         kin_type = factor(kin_type, levels = c("mom", 
-                                                "mm", "mmm", "mfm", 
-                                                "mmmm", "mmfm", "mfmm", "mffm",  
-                                                "mf", "mmf", "mff",
-                                                "mmmf", "mmff", "mfmf", "mfff",
-                                                "pop",
-                                                "fm", "fmm", "ffm", 
-                                                "fmmm", "fmfm", "ffmm", "fffm", 
-                                                "ff", "fmf", "fff",
-                                                "fmmf", "fmff", "ffmf", "ffff" )))
-
-# Calculate label positions for plots
-label_positions <- overlap_all %>%
-  filter(dob_ego_year == 1985) %>%  
-  group_by(Sex, kin_type2) %>%
-  arrange(desc(kin_type), .by_group = TRUE) %>%  # REVERSE for stacking calculation
-  mutate(cumulative = cumsum(mean_overlap_years_all),
-         y_end = cumulative,
-         y_start = lag(cumulative, default = 0),
-         lineage = ifelse(str_sub(kin_type, -1) == "m", "Maternal", "Paternal")) %>%
-  group_by(Sex, kin_type2, lineage) %>%
-  summarise(y_pos = (min(y_start) + max(y_end)) / 2,
-            .groups = "drop") %>%
-  filter(kin_type2 != "Mother" & kin_type2 != "Father")
-
-# Plot Overlap with all Female ancestors
-overlap_all_f <- overlap_all %>%
-  filter(Sex == "Female Ancestors") %>%
-  ggplot(aes(x = dob_ego_year, y = mean_overlap_years_all, fill = kin_type)) +
-  geom_col(position = "stack", width = 1) + 
-  geom_text(data = label_positions %>% filter(Sex == "Female Ancestors"),
-            aes(x = 1985, y = y_pos, label = lineage),
-            inherit.aes = FALSE,
-            size = 4, family = "serif", fontface = "bold", color = "white") +
-  facet_grid(kin_type2 ~ Sex, scales = "free_y") +
-  scale_fill_viridis_d(option = "F", direction = -1, guide = "none") +
-  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000)) +
-  facetted_pos_scales(y = y_scales_list) +
-  labs(x = "Birth Cohort", y = "Mean person-years of overlap with all ancestors") +
-  theme_graphs() +
-  theme(strip.text = element_text(size = 22))
-
-# Plot Overlap with all Male ancestors
-overlap_all_m <- overlap_all %>%
-  filter(Sex == "Male Ancestors") %>%
-  ggplot(aes(x = dob_ego_year, y = mean_overlap_years_all, fill = kin_type)) +
-  geom_col(position = "stack", width = 1) +  
-  geom_text(data = label_positions %>% filter(Sex == "Male Ancestors"),
-            aes(x = 1985, y = y_pos, label = lineage),
-            inherit.aes = FALSE,
-            size = 4, family = "serif", fontface = "bold", color = "white") +
-  facet_grid(kin_type2 ~ Sex, scales = "free_y") +
-  scale_fill_viridis_d(option = "F", direction = -1, guide = "none") +
-  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000)) +
-  facetted_pos_scales(y = y_scales_list) +
-  labs(x = "Birth Cohort", y = "Mean person-years of overlap with all ancestors") +
-  theme_graphs() +
-  theme(strip.text = element_text(size = 22))
-
-# Combine plots 
-cowplot::plot_grid(overlap_all_f, overlap_all_m, ncol = 2)
-ggsave(file="Graphs/5_Overlap_All_Ancestors.jpeg", width=20, height=18, dpi=300)
-ggsave(file="Graphs/5_Overlap_All_Ancestors.pdf", width=20, height=18, dpi=300, device = "pdf")
-
-
-#### Calculate overlap per ancestors generation by cohort ----
-
-overlap_per_gen <- overlap_all %>% 
-  # Sum mean overlap years per cohort and kin_type (grouping ancestors of same kin_type2)
-  group_by(dob_ego_year, kin_type2) %>%
-  summarise(sum_overlap_years_gen = sum(mean_overlap_years_all, na.rm = TRUE),
-            .groups = "drop") %>% 
-  # Add maximum number of kin per generation
-  left_join(overlap_all %>% 
-              distinct(kin_type, kin_type2) %>%
-              count(kin_type2, name = "max_gen"), 
-            by = "kin_type2") %>%
-  # Calculate mean overlapping years with each generation
-  mutate(overlap_years_gen = sum_overlap_years_gen / max_gen)
-
-# Plot overlap per living ancestors, facetted by sex 
-overlap_per_gen %>% 
-  mutate(Sex = ifelse(kin_type2 %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
-                      "Female Ancestors", "Male Ancestors"), 
-         kin_type2 = factor(kin_type2, 
-                            levels = c("Ego", "Mother", "Father", 
-                                       "Grandmothers", "Grandfathers",
-                                       "Greatgrandmothers", "Greatgrandfathers",
-                                       "Greatgreatgrandmothers", "Greatgreatgrandfathers"))) %>%
-  split(.$Sex) %>%
-  map(~ ggplot(., aes(x= dob_ego_year, overlap_years_gen, group = kin_type2, colour = kin_type2)) +
-        geom_line(linewidth = 1) +
-        facet_wrap(~ Sex)+
-        scale_colour_viridis_d(option = "D", direction =-1)+
-        scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000))+
-        scale_y_continuous(breaks = c(0, 20, 40, 60), limits = c(0, 60))+
-        labs(x = "Birth Cohort", y = "Mean years of overlap per ancestors generation", colour = "Ancestor") +
-        theme_graphs() +
-        theme(legend.title=element_blank(),
-              strip.text = element_text(size = 22))) %>% 
-  cowplot::plot_grid(plotlist = .)
-
-
-# Plot overlap per living ancestors
-overlap_per_gen %>% 
-  mutate(Sex = ifelse(kin_type2 %in% c("Mother", "Grandmothers", "Greatgrandmothers", "Greatgreatgrandmothers"), 
-                      "Female", "Male"), 
-         kin_type2 = factor(kin_type2, 
-                            levels = c("Ego", "Mother", "Father", 
-                                       "Grandmothers", "Grandfathers",
-                                       "Greatgrandmothers", "Greatgrandfathers",
-                                       "Greatgreatgrandmothers", "Greatgreatgrandfathers")),
-         Generation = case_when(kin_type2 %in% c("Mother","Father" ) ~ "Parents",
-                                kin_type2 %in% c("Grandmothers","Grandfathers" ) ~ "Grandparents",
-                                kin_type2 %in% c("Greatgrandmothers","Greatgrandfathers" ) ~ "Greatgrandparents",
-                                kin_type2 %in% c("Greatgreatgrandmothers","Greatgreatgrandfathers") ~ "Greatgreatgrandparents",
-                                TRUE ~ NA), 
-         Generation = factor(Generation, levels = c("Parents", "Grandparents", 
-                                                    "Greatgrandparents", "Greatgreatgrandparents"))) %>% 
-  ggplot(aes(x= dob_ego_year, overlap_years_gen, group = kin_type2, colour = Generation, linetype = Sex)) +
-  geom_line(linewidth = 1) +
-  scale_colour_viridis_d(option = "D", direction =-1)+
-  scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
-  scale_y_continuous(breaks = c(0, 20, 40, 60), limits = c(0, 60))+
-  labs(x = "Birth Cohort", y = "Mean years of overlap per ancestors generation", 
-       colour = "Ancestors' Generation", linetype = "Ancestors' Sex") +
-  guides(colour = guide_legend(order = 1),
-         linetype = guide_legend(order = 2))+
-  theme_graphs() +
-  theme(strip.text = element_text(size = 22))
-ggsave(file="Graphs/App_Overlap_Per_Ancestors.jpeg", width=20, height=9, dpi=300)
-ggsave(file="Graphs/App_Overlap_Per_Ancestors.pdf", width=20, height=9, dpi=300, device = "pdf")
