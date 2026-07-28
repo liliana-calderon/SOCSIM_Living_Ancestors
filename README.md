@@ -1,27 +1,31 @@
-Code for reproducible results for the paper “”
+Code for reproducible results for the paper “Measuring the Overlap with
+Ancestors Throughout the Life Course of the Swedish Cohorts 1751–2000”
 ================
 
 - [Introduction](#introduction)
 - [Scripts for reproducible results](#scripts-for-reproducible-results)
-- [References](#references)
 
 # Introduction
 
-We use the SOCSIM demographic microsimulation program and
-data for Sweden from the [Human Fertility Collection
+.We use the SOCSIM demographic microsimulation program and data for
+Sweden from the [Human Fertility Collection
 (HFC)](https://www.fertilitydata.org/) (1751-1890), the [Human Fertility
-Database (HFD)](https://www.humanfertility.org/) (1891-2023), and the
-[Human Mortality Da ctabase (HMD)](https://www.mortality.org/)
-(1751-2022). 
+Database (HFD)](https://www.humanfertility.org/) (1891-2023), the [Human
+Mortality Database (HMD)](https://www.mortality.org/) (1751-2023), and
+the [World Population Prospects (WPP) 2024
+Revision](https://population.un.org/wpp/downloads?folder=Standard%20Projections&group=CSV%20format)
+(2024-2100)
 
 # Scripts for reproducible results
 
 **NB**: If you want to re-run the analysis from scratch (i.e., retrieve
 the data from [HFC](https://www.fertilitydata.org/),
-[HFD](https://www.humanfertility.org/), and
-[HMD](https://www.mortality.org/)), run the microsimulations and
-reproduce the results), you need R, some standard packages, `HMDHFDplus`
-and `rsocsim`. Please, follow these steps:
+[HFD](https://www.humanfertility.org/),
+[HMD](https://www.mortality.org/)), and
+[WPP](https://population.un.org/wpp/downloads?folder=Standard%20Projections&group=CSV%20format)
+run the microsimulations and reproduce the results), you need R, some
+standard packages, `HMDHFDplus` and `rsocsim`. Please, follow these
+steps:
 
 1.  Download this repository to your computer.  
 2.  Register at [HFD](https://www.humanfertility.org/) and
@@ -36,19 +40,18 @@ and `rsocsim`. Please, follow these steps:
     after accepting the user agreement on their websites:
     <https://www.humanfertility.org/Account/Auth> and
     <https://mortality.org/Account/Auth>.
-3.  Install `rsocsim` (now from CRAN)  
-    Please go to <https://github.com/MPIDR/rsocsim> to find the
-    instructions on how to install `rsocsim`.  
-4.  Open the provided RStudio project.
-5.  Run the scripts sequentially in the order suggested by the numbers
+3.  Download and save WPP 2024 data as .csv using the function
+    download_WPP2024(), provided in the script
+    “Functions/Functions_Download_WPP2024.R”
+4.  Install `rsocsim` from CRAN using install.packages(“rsocsim”) Please
+    go to <https://github.com/MPIDR/rsocsim> to find the instructions on
+    how to install and use `rsocsim`.  
+5.  Open the provided RStudio project.
+6.  Run the scripts sequentially in the order suggested by the numbers
     of the files (0-4).
-6.  In scripts 0 and 1, please type your username and password for
+7.  In scripts 0 and 1, please type your username and password for
     [HFD](https://www.humanfertility.org/) and
     [HMD](https://www.mortality.org/) in the corresponding space before
     running the code.  
-7.  To get exactly the same simulation results, you should use the same
+8.  To get exactly the same simulation results, you should use the same
     randomly generated seed mentioned in script 0.
-
-</div>
-
-</div>
