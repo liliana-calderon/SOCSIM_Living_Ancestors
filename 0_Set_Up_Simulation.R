@@ -156,9 +156,8 @@ write_socsim_rates_WPP_fertility(Country = "SWE",
 # For 1751-2023, we use the qx from HMD period life tables, which are smoothed for ages 80 and above 
 # (See HMD explanatory notes on old-age mortality https://www.mortality.org/Data/ExplanatoryNotes).
 
-# To ensure compatibility with the WPP projections, 
-# we limit the age range of the HMD lifetables to [0-100]
-# and limit the final age interval 100+ to one year, i.e. [100-101)
+# We keep the entire age range of the HMD lifetables to [0-110+]
+# and limit the final age interval 110+ to one year, i.e. [110-111]
 
 ## To convert the annual probabilities to monthly probabilities,  
 # we assume that the probability of dying is constant over the year
@@ -182,9 +181,10 @@ write_socsim_rates_HMD(Country = "SWE",
 #----------------------------------------------------------------------------------------------------
 ## 1.5 Write projected mortality rate files for SOCSIM using data from WPP ----
 
-# We use the whole age range of the single age life tables provided by the WPP 2024 [0-100]. 
-# The final age interval 100 is limited to one year, i.e. [100-101). 
-
+# To ensure compatibility with the HMD data, we use the age range from HMD [0-110]
+# For ages 0-99, we use the probabilities of dying from the WPP single age life tables
+# Ages 100-110 are extrapolated from WPP age pattern 80-99 using a Kannisto old-age model
+# The final age interval is limited to one year [110-111]
 
 # To convert the annual WPP probabilities to monthly 'SOCSIM' probabilities, 
 # we assume that the probability of dying is constant over the year 
@@ -200,11 +200,9 @@ write_socsim_rates_HMD(Country = "SWE",
 # For further details, see the Methodology of the United Nations population estimates and projections
 
 # The function below filters the WPP 2024 mortality data for the selected country and period
+# extend the mortality rates for 100-110 based on qx80-99, using the Kannisto model
 # and convert to SOCSIM format following the procedure explained above. 
 # To run it, type the ISO_Code3 of the country as listed in the WPP 2024, and the minimum and maximum years
-
-# To match the HMD mortality rates range (0-110+)
-# we extend the mortality rates for 100-110 based on qx80-99, using the Kannisto model
 
 write_socsim_rates_WPP_mortality(Country = "SWE", 
                                  Year_Min = 2024,
@@ -247,16 +245,12 @@ write.table(presim.omar, "presim.omar", row.names = F, col.names = F)
 
 #------------------------------------------------------------------------------------------------------
 ## Run SOCSIM simulations with 'rsocsim' package ----
-# The instructions to install the rsocsim package and run the simulation 
-# can be found on https://github.com/MPIDR/rsocsim/blob/main/readme.md
-# To get the latest version from source, RTools and devtools must be installed.
 
-# library(devtools)
-# Install rsocsim from Github with devtools:
-# devtools::install_github("MPIDR/rsocsim")
+# rsocsim can be now easily installed from CRAN:
+# install.packages("rsocsim")
 
-# To get the updates, uninstall and install again the package
-# remove.packages("rsocsim")
+# To get the development version, from binary package or source
+# follow the instructions on https://mpidr.github.io/rsocsim/
 
 # Load rsocsim package
 library("rsocsim")
