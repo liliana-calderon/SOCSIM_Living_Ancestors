@@ -5,7 +5,7 @@
 # and the World Population Prospects 2024 Revision
 
 # Initial version created on 08-06-2022
-# Last modified on 21-07-2026
+# Last modified on 30-07-2026
 
 #----------------------------------------------------------------------------------------------------
 #### Create subfolders ----
@@ -316,8 +316,8 @@ write_socsim_rates_HMD <- function(Country, Year_Max, HMD_username, HMD_password
     left_join(ltm %>% select(Year, Age, qx),
               by = c("Year","Age"), suffix = c("_F","_M")) %>%
     filter(Year <= Year_Max) %>%
-    mutate(qx_Fmo = ifelse(Age == 110, 1/12, 1-(1-qx_F)^(1/12)), 
-           qx_Mmo = ifelse(Age == 110, 1/12, 1-(1-qx_M)^(1/12)),
+    mutate(qx_Fmo = ifelse(Age == 110, 1, 1-(1-qx_F)^(1/12)), 
+           qx_Mmo = ifelse(Age == 110, 1, 1-(1-qx_M)^(1/12)),
            Age_up = Age + 1, # SOCSIM uses the upper age bound
            Month = 0) %>%
     select(c(Year, Age_up, Month, qx_Fmo, qx_Mmo))
@@ -357,7 +357,7 @@ write_socsim_rates_HMD <- function(Country, Year_Max, HMD_username, HMD_password
         file = outfilename)
     cat(c("** NB: The original HMD annual probabilities have been converted into monthly probabilities", "\n"),
         file = outfilename)
-    cat(c("** The open age interval (110+) is limited to one year [110-111)", "\n"),
+    cat(c("** The open age interval (110+) is limited to one year [110-111]", "\n"),
         file = outfilename)
     cat("\n", file = outfilename)
     
@@ -412,7 +412,7 @@ write_socsim_rates_WPP_mortality <- function(Country, Year_Min, Year_Max) {
     
     # Extrapolate old-age mortality rates for ages 100-110
     pred_ages <- 100:110
-    pred_mx <- MortalityLaws::predict(fit, x = pred_ages)
+    pred_mx <- predict(fit, x = pred_ages)
     
     extra <- tibble(Age = pred_ages, 
                     mx = pred_mx, 
@@ -443,7 +443,7 @@ write_socsim_rates_WPP_mortality <- function(Country, Year_Min, Year_Max) {
     arrange(Age, .by_group = TRUE) %>%
     tidyr::fill(qx, .direction = "down") %>%
     ungroup() %>%
-    mutate(qx_mo = if_else(Age == 110, 1/12, 1 - (1 - qx)^(1/12)), 
+    mutate(qx_mo = if_else(Age == 110, 1, 1 - (1 - qx)^(1/12)), 
            Age_up = Age + 1L, # SOCSIM uses the upper age bound
            Month  = 0L) %>%
     select(Year, Age_up, Month, Sex, qx_mo) %>%
@@ -484,7 +484,7 @@ write_socsim_rates_WPP_mortality <- function(Country, Year_Min, Year_Max) {
         file = outfilename)
     cat(c("* Ages 100-110 are extrapolated from WPP age pattern using a Kannisto-type old-age model.", "\n"),
         file = outfilename)
-    cat(c("** The final age interval is limited to one year [110-111)", "\n"),
+    cat(c("** The final age interval is limited to one year [110-111]", "\n"),
         file = outfilename)
     cat("\n", file = outfilename)
     
