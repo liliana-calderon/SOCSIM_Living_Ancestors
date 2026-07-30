@@ -16,7 +16,7 @@
 ## and read the output into R. 
 
 # Created on 14-10-2025
-# Last modified on 21-07-2026
+# Last modified on 30-07-2026
 #------------------------------------------------------------------------------------------------------
 # SOCSIM simulation: input rates and assumptions ----
 
@@ -40,7 +40,9 @@
 # Mortality rates correspond to probabilities of death (qx) of HMD and WPP period life tables. 
 # They are identical for all marital status of each sex, and are only specified for single women and men. 
 # Other marital status will follow the rate default rules. 
-# To ensure compatibility between HMD and WPP life tables, we limit the age range of the HMD life tables to [0-100]
+# To ensure compatibility between HMD and WPP life tables, 
+# we extend the mortality rates for 100-110 based on mx80-99, using the Kannisto old-age mortality model
+# and limit the final age interval [110] to 1 years
 
 # The first segment of the simulation runs for 100 years to produce a stable age structure, 
 # based on 1751-HFC and 1751-HMD age-specific rates
@@ -70,13 +72,14 @@ rm(list=ls(all=TRUE))
 options(scipen=9999)
 
 # Load necessary packages
-library(tidyverse)
-library(readr)
 # install.packages("HMDHFDplus")
 library(HMDHFDplus)
+# install.packages("MortalityLaws")
 library(MortalityLaws)
+library(readr)
 #install.packages("rsocsim")
 library(rsocsim)
+library(tidyverse)
 
 # Load functions to write SOCSIM rate files from HFC, HFD, HMD and WPP
 source("Functions/Functions_Input_Rates.R")
@@ -156,8 +159,9 @@ write_socsim_rates_WPP_fertility(Country = "SWE",
 # For 1751-2023, we use the qx from HMD period life tables, which are smoothed for ages 80 and above 
 # (See HMD explanatory notes on old-age mortality https://www.mortality.org/Data/ExplanatoryNotes).
 
-# We keep the entire age range of the HMD lifetables to [0-110+]
+# We keep the entire age range of the HMD life tables to [0-110+]
 # and limit the final age interval 110+ to one year, i.e. [110-111]
+# SN: Using 1/12 would allow some individuals to live beyond 120+
 
 ## To convert the annual probabilities to monthly probabilities,  
 # we assume that the probability of dying is constant over the year
@@ -183,13 +187,14 @@ write_socsim_rates_HMD(Country = "SWE",
 
 # To ensure compatibility with the HMD data, we use the age range from HMD [0-110]
 # For ages 0-99, we use the probabilities of dying from the WPP single age life tables
-# Ages 100-110 are extrapolated from WPP age pattern 80-99 using a Kannisto old-age model
+# Ages 100-110 are extrapolated from WPP age pattern 80-99 using a Kannisto old-age mortality model
 # The final age interval is limited to one year [110-111]
 
 # To convert the annual WPP probabilities to monthly 'SOCSIM' probabilities, 
 # we assume that the probability of dying is constant over the year 
 # and use the formula $1-(1-_nq_x)^{1/n}$ proposed by Kenneth Watcher. 
-# For the final age interval 110, monthly probabilities are equal to 1/12.
+# For the final age interval 110+, monthly probabilities are equal to 1
+# SN: Using 1/12 would allow some individuals to live beyond 120+
 
 # The probabilities of death are identical for all marital status of each sex, 
 # and are only specified for single women and single men in the rate files. 
@@ -200,7 +205,7 @@ write_socsim_rates_HMD(Country = "SWE",
 # For further details, see the Methodology of the United Nations population estimates and projections
 
 # The function below filters the WPP 2024 mortality data for the selected country and period
-# extend the mortality rates for 100-110 based on qx80-99, using the Kannisto model
+# extend the mortality rates for 100-110 based on mx80-99, using the Kannisto old-age mortality model
 # and convert to SOCSIM format following the procedure explained above. 
 # To run it, type the ISO_Code3 of the country as listed in the WPP 2024, and the minimum and maximum years
 
@@ -281,7 +286,7 @@ rsocsim::socsim(folder, supfile, seed, process_method = "future")
 end <- Sys.time()
 
 print(end-start)
-# Time difference of 1.802847 hours for  1 simulation, with initial opop of 50000 and hetfert 0
+# Time difference of 2.031558 hours for  1 simulation, with initial opop of 50000 and hetfert 0
 #----------------------------------------------------------------------------------------------------
 ## Read the output .opop and .omar files ----
 
