@@ -7,7 +7,7 @@
 # for the overlapping period 1950-2023 
 
 # Created on 15-10-2025
-# Last modified on 23-03-2026
+# Last modified on 30-07-2026
 #----------------------------------------------------------------------------------------------------
 ## Global Settings ----
 
@@ -15,13 +15,15 @@
 rm(list=ls(all=TRUE))
 
 # Prevent scientific notation
-options(scipen=999999)
+options(scipen=9999)
 
 # Load necessary packages
-library(tidyverse)
 library(ggh4x)  # To facet scales-
 #install.packages("HMDHFDplus")
 library(HMDHFDplus)
+# install.packages("MortalityLaws")
+library(MortalityLaws)
+library(tidyverse)
 library(viridis)
 
 # Load function to download WPP2024 and save it as .csv
@@ -31,7 +33,7 @@ source("Functions/Functions_Download_WPP2024.R")
 source("Functions/Functions_Graphs.R")
 
 #----------------------------------------------------------------------------------------------------
-# Obtain the data from the different sources
+# Obtain the data from the different sources ----
 
 # Get ASFR from HFD for Sweden (by single year of age and calendar year), 1891-2022
 HFD <- readHFDweb(CNTRY = "SWE",
@@ -66,9 +68,61 @@ WPP_fert <- fertility %>%
   mutate(ASFR = ASFR/1000)
 
 # Combine WPP male and female life tables and filter for Sweden
-WPP_mort <- bind_rows(lifetable_female_hist, lifetable_male_hist) %>% 
+WPP_mort_raw <- bind_rows(lifetable_female_hist, lifetable_male_hist) %>% 
   filter(ISO3_code == "SWE") %>%
   select(Year = Time, Sex, Age = AgeGrpStart, mx, qx, ex)
+
+#----------------------------------------------------------------------------------------------------
+## Create a function to extend the mortality rates for 100-110 using the Kannisto model ----
+extend_with_kannisto <- function(lt) {
+  
+  observed <- lt %>%
+    arrange(Age) %>%
+    distinct(Age, .keep_all = TRUE) %>%
+    filter(Age <= 99)
+  
+  # Fit on 80-99
+  fit_data <- observed %>%
+    filter(Age >= 80, Age <= 99) %>%
+    filter(!is.na(mx) & mx > 0)
+  
+  fit <- MortalityLaws::MortalityLaw(x = fit_data$Age, 
+                                     mx = fit_data$mx, 
+                                     law = "kannisto")
+  
+  # Extrapolate old-age mortality rates for ages 100-110
+  pred_ages <- 100:110
+  pred_mx <- predict(fit, x = pred_ages)
+  
+  extra <- tibble(Age = pred_ages, 
+                  mx = pred_mx, 
+                  qx = 1 - exp(-pred_mx))
+  
+  bind_rows(observed %>% 
+              select(Year, Sex, Age, mx, qx),
+            extra %>% 
+              mutate(Year = observed$Year[1],
+                     Sex  = observed$Sex[1]) %>% 
+              select(Year, Sex, Age, mx, qx)) %>%
+    arrange(Age) }
+
+wpp_mort_ext <- WPP_mort_raw  %>%
+  group_by(Year, Sex) %>%
+  group_split() %>%
+  purrr::map_dfr(extend_with_kannisto) %>%
+  ungroup()
+
+# Complete age grid 0:110
+full_grid <- expand_grid(Year = seq(Year_Min, Year_Max),
+                         Sex  = c("Female", "Male"),
+                         Age  = 0:110)
+
+wpp_mort <- full_grid %>%
+  left_join(wpp_mort_ext, by = c("Year", "Sex", "Age")) %>%
+  group_by(Year, Sex) %>%
+  arrange(Age, .by_group = TRUE) %>%
+  tidyr::fill(qx, .direction = "down") %>%
+  ungroup()
 
 #----------------------------------------------------------------------------------------------------
 ## Comparison of HFD/HMD data with WPP for overlapping years (1950-2023) ----
@@ -136,7 +190,7 @@ HMD_qx <- ltf %>%
   mutate(Source = "HMD", 
          Rate = "qx")
 
-# Wrangle WPP life tables
+# Wrangle WPP life tables (extended to 110)
 WPP_qx <- WPP_mort %>% 
   select(Year, Sex, Age, qx) %>% 
   mutate(Source = "WPP", 
@@ -155,7 +209,7 @@ bind_rows(HMD_qx, WPP_qx) %>%
   geom_line(aes(colour = Year, linetype = Source), linewidth = 1.3)+
   facet_wrap(~ Sex) +
   scale_color_viridis_d(option = "D") +  
-  scale_x_continuous(breaks = seq(0,100, by = 20), guide = guide_axis(angle = 90)) +
+  scale_x_continuous(breaks = seq(0,110, by = 20), guide = guide_axis(angle = 90)) +
   scale_y_log10() +
   theme_graphs()
 ggsave(file="Graphs/qx_HMD_WPP.jpeg", width=17, height=9, dpi=300)
@@ -271,7 +325,6 @@ bind_rows(HFD_TFR %>% rename(Estimate = TFR) %>%  mutate(Rate = "TFR"),
   scale_color_manual(values = c("#CA650D", "#0C0B7F", "#007A75")) +
   facetted_pos_scales(y = list("Total Fertility Rate" = scale_y_continuous(limits = c(0, NA)),
                                "Life Expectancy at Birth" =  scale_y_continuous()))+
-  #scale_x_continuous(breaks = c(1960, 1980, 2000, 2020))+
   theme_graphs()
 ggsave(file="Graphs/TFR_e0_HFD_HMD_WPP.jpeg", width=17, height=9, dpi=300)
 ggsave(file="Graphs/TFR_e0_HFD_HMD_WPP.pdf", width=17, height=9, dpi=300, device = "pdf")
