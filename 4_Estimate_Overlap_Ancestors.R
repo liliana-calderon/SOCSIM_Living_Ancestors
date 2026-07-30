@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 27-07-2026
+# Last modified on 30-07-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -50,7 +50,7 @@ last_month <- opop %>% pull(dod) %>% max()
 final_sim_year <- 2100
 
 
-#### Calculate overlap with all ancestors per ego ----
+## Calculate overlap with all ancestors per ego ----
 # considering dod == 0 as censored at last_month
 overlap_all_ego <- ancestors %>%
   # Add dates of birth and death of egos and their ancestors
@@ -302,7 +302,7 @@ ggsave("Graphs/4_Proportion_Any_Ancestors_Age.jpg",  width = 20, height = 16, dp
 ggsave("Graphs/4_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dpi = 300, device = "pdf")
 
 
-# Combine results for the mean number of co-existing ancestors alive by age ----
+## Combine results for the mean number of co-existing ancestors alive by age ----
 mean_number_age <- results %>%
   map("mean_number_age") %>%
   bind_rows()
@@ -457,7 +457,7 @@ ggsave(file="Graphs/5_Overlap_All_Ancestors.jpeg", width=20, height=18, dpi=300)
 ggsave(file="Graphs/5_Overlap_All_Ancestors.pdf", width=20, height=18, dpi=300, device = "pdf")
 
 
-#### Calculate overlap per ancestors generation by cohort ----
+## Calculate overlap per ancestors generation by cohort ----
 
 overlap_per_gen <- overlap_all %>% 
   # Sum mean overlap years per cohort and kin_type (grouping ancestors of same kin_type2)
