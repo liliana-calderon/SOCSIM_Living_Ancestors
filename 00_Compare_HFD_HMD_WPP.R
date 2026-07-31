@@ -1,13 +1,13 @@
 #------------------------------------------------------------------------------------------------------
 # SOCSIM - SOCSIM Living Ancestors - Compare sources HFD, HMD, WPP
-# U:/SOCSIM/SOCSIM_Living_Ancestors/0_Compare_HFD_HMD_WPP.R
+# U:/SOCSIM/SOCSIM_Living_Ancestors/00_Compare_HFD_HMD_WPP.R
 
 # Compare age-specific fertility rates from the Human Fertility Database and the World Population Prospects 2024 
 # and age-specific probabilities of death (qx) from the Human Mortality Database and the World Population Prospects 2024
 # for the overlapping period 1950-2023 
 
 # Created on 15-10-2025
-# Last modified on 30-07-2026
+# Last modified on 31-07-2026
 #----------------------------------------------------------------------------------------------------
 ## Global Settings ----
 
@@ -31,6 +31,9 @@ source("Functions/Functions_Download_WPP2024.R")
 
 ## Load theme for the graphs and to convert SOCSIM time
 source("Functions/Functions_Graphs.R")
+
+# Load function to recalculate WPP life table from extended qx
+source("Functions/Functions_Life_Table.R")
 
 #----------------------------------------------------------------------------------------------------
 # Obtain the data from the different sources ----
@@ -74,6 +77,7 @@ WPP_mort_raw <- bind_rows(lifetable_female_hist, lifetable_male_hist) %>%
 
 #----------------------------------------------------------------------------------------------------
 ## Create a function to extend the mortality rates for 100-110 using the Kannisto model ----
+
 extend_with_kannisto <- function(lt) {
   
   observed <- lt %>%
@@ -104,8 +108,10 @@ extend_with_kannisto <- function(lt) {
               mutate(Year = observed$Year[1],
                      Sex  = observed$Sex[1]) %>% 
               select(Year, Sex, Age, mx, qx)) %>%
-    arrange(Age) }
+    arrange(Age) 
+  }
 
+# Apply the function to extend mortality rates
 wpp_mort_ext <- WPP_mort_raw  %>%
   group_by(Year, Sex) %>%
   group_split() %>%
@@ -113,15 +119,16 @@ wpp_mort_ext <- WPP_mort_raw  %>%
   ungroup()
 
 # Complete age grid 0:110
-full_grid <- expand_grid(Year = seq(Year_Min, Year_Max),
+full_grid <- expand_grid(Year = seq(1950, 2023),
                          Sex  = c("Female", "Male"),
                          Age  = 0:110)
 
-wpp_mort <- full_grid %>%
+WPP_mort <- full_grid %>%
   left_join(wpp_mort_ext, by = c("Year", "Sex", "Age")) %>%
   group_by(Year, Sex) %>%
   arrange(Age, .by_group = TRUE) %>%
   tidyr::fill(qx, .direction = "down") %>%
+  mutate(qx = if_else(Age == 110, 1, qx)) %>%  
   ungroup()
 
 #----------------------------------------------------------------------------------------------------
@@ -236,7 +243,7 @@ bind_rows(HFD %>% rename(Estimate = ASFR),
   facet_wrap(. ~ Rate, scales = "free") + 
   geom_line(aes(colour = Year, linetype = Source, group = interaction(Year, Source)), linewidth = 1.5)+ 
   scale_color_manual(values = c("#5079B7", "#845098", "#B72779", "#AB3295"))+
-  scale_linetype_manual(values = c("dotted", "dotted", "solid"))+
+  scale_linetype_manual(values = c("dotted", "dotdash", "solid"))+
   facetted_pos_scales(y = list("Age-Specific Fertility Rates" = NULL,
                                "Age-Specific Mortality Rates" =  scale_y_continuous(trans = "log10")))+
   scale_x_discrete(breaks = c(0, 1, seq(5, 110, 5)), guide = guide_axis(angle = 90))+
@@ -245,8 +252,8 @@ bind_rows(HFD %>% rename(Estimate = ASFR),
   theme(panel.grid.major.x = element_line(colour = "#C9C9C9", linetype = "dotted"),
         panel.grid.major.y = element_line(colour = "#C9C9C9", linetype = "dotted"),
         panel.grid.minor.x = element_line(colour = "#C9C9C9", linetype = "dotted"))
-ggsave(file="Graphs/ASFR_qx_HFD_HMD_WPP.jpeg", width=17, height=9, dpi=300)
-ggsave(file="Graphs/ASFR_qx_HFD_HMD_WPP.pdf", width=17, height=9, dpi=300, device = "pdf")
+ggsave(file="Graphs/App_ASFR_qx_HFD_HMD_WPP.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/App_ASFR_qx_HFD_HMD_WPP.pdf", width=17, height=9, dpi=300, device = "pdf")
 
 #----------------------------------------------------------------------------------------------------
 ## Summary measures: TFR and e0 ----
@@ -289,8 +296,8 @@ HMD_ex <- ltf %>%
   filter(Year %in% year_range_mort) %>% 
   mutate(Source = "HMD")
 
-# Wrangle WPP life tables
-WPP_ex <- WPP_mort %>% 
+# Wrangle WPP extended data and recalculate ex
+WPP_ex <- lt_wpp_ext(WPP_mort) %>% 
   select(Year, Age, ex, Sex) %>% 
   mutate(Source = "WPP") 
 
@@ -326,5 +333,5 @@ bind_rows(HFD_TFR %>% rename(Estimate = TFR) %>%  mutate(Rate = "TFR"),
   facetted_pos_scales(y = list("Total Fertility Rate" = scale_y_continuous(limits = c(0, NA)),
                                "Life Expectancy at Birth" =  scale_y_continuous()))+
   theme_graphs()
-ggsave(file="Graphs/TFR_e0_HFD_HMD_WPP.jpeg", width=17, height=9, dpi=300)
-ggsave(file="Graphs/TFR_e0_HFD_HMD_WPP.pdf", width=17, height=9, dpi=300, device = "pdf")
+ggsave(file="Graphs/App_TFR_e0_HFD_HMD_WPP.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/App_TFR_e0_HFD_HMD_WPP.pdf", width=17, height=9, dpi=300, device = "pdf")
