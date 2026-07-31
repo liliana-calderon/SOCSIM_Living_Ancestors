@@ -49,7 +49,7 @@ load("ancestors.RData")
 last_month <- opop %>% pull(dod) %>% max()
 final_sim_year <- 2100
 
-
+start1 <- Sys.time()
 ## Calculate overlap with all ancestors per ego ----
 # considering dod == 0 as censored at last_month
 overlap_all_ego <- ancestors %>%
@@ -70,6 +70,8 @@ overlap_all_ego <- ancestors %>%
          overlap_months_ego = pmax(0L, overlap_end - dob_ego),
          dob_ego_year = asYr(dob_ego, last_month, final_sim_year))
 save(overlap_all_ego, file = "Measures/overlap_all_ego.RData")
+end1 <- Sys.time()
+print(end1-start1)
 
 ## Calculate overlap with any ancestors by cohort and ancestors' generation ----
 overlap_any <- overlap_all_ego %>%
@@ -235,10 +237,12 @@ estimates_cohort_age <- function(cohort_start, cohort_end) {
               mean_number_age = mean_number_age))
 }
 
+start2 <- Sys.time()
 # Map the function to all birth cohorts
 results <- map(1751:2000, ~ estimates_cohort_age(.x, .x), 
                .progress = TRUE)
-
+end2 <- Sys.time()
+print(end2-start2)
 
 # Combine results for the proportion of individuals with any ancestor alive by age
 prop_any_age <- results %>%
