@@ -6,7 +6,7 @@
 # https://github.com/timriffe/BSSD2021Module2/blob/master/02_tuesday/02_tuesday.Rmd 
 
 # Created on 15-03-2023
-# Last modified on 30-07-2026
+# Last modified on 31-07-2026
 #----------------------------------------------------------------------------------------------------
 
 lt_socsim <- function(asmr_socsim){
@@ -19,7 +19,8 @@ lt_socsim <- function(asmr_socsim){
            rn = row_number()) %>% 
     # Filter data frame until maximum row with mx greater than 0
     filter(between(rn, 1, max(which(mx > 0)))) %>% 
-    mutate(mx = case_when(is.nan(mx) ~ 0,
+    mutate(mx = case_when(is.na(mx) ~ 0, # Also replacing NA
+                          is.nan(mx) ~ 0,
                           is.infinite(mx) ~ 1,  # Set Infinite mx(x/0) to 1
                           TRUE ~ mx),
            # Use a0 formulas from HMD (Modified version from Andreev and Kingkade, 2015)
@@ -60,9 +61,10 @@ lt_socsim_sims <- function(asmr_socsim_sims){
          rn = row_number()) %>% 
   # Filter data frame until maximum row with mx greater than 0
   filter(between(rn, 1, max(which(mx > 0)))) %>% 
-  mutate(mx = case_when(is.nan(mx) ~ 0,
-                        is.infinite(mx) ~ 1,  # Set Infinite mx(x/0) to 1
-                        TRUE ~ mx),
+    mutate(mx = case_when(is.na(mx) ~ 0, # Also replacing NA
+                          is.nan(mx) ~ 0,
+                          is.infinite(mx) ~ 1,  # Set Infinite mx(x/0) to 1
+                          TRUE ~ mx),
          # Use a0 formulas from HMD (Modified version from Andreev and Kingkade, 2015)
          ax = case_when(Age == 0 & sex == "female" & mx < 0.01724 ~ 0.14903 - 2.05527 * mx,
                         Age == 0 & sex == "female" & mx < 0.06891 ~ 0.04667 + 3.88089 * mx,
@@ -99,9 +101,10 @@ lt_wpp_ext <- function(wpp_ext){
     mutate(n  = if_else(Age == max(Age), 1, lead(Age) - Age),
            rn = row_number()) %>%
     filter(between(rn, 1, max(which(!is.na(qx) & qx >= 0)))) %>%
-    mutate(mx = case_when(is.nan(mx)      ~ 0,
-                          is.infinite(mx) ~ 1,
-                          TRUE            ~ mx),
+    mutate(mx = case_when(is.na(mx) ~ 0, 
+                          is.nan(mx) ~ 0,
+                          is.infinite(mx) ~ 1,  
+                          TRUE ~ mx),
       qx = case_when(is.nan(qx)      ~ 0,
                      is.infinite(qx) ~ 1,
                      TRUE            ~ qx),
