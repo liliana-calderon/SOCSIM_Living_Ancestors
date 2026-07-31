@@ -191,7 +191,7 @@ Input_fert <- bind_rows(HFC, HFD, WPP_fert) %>%
 # Wrangle SOCSIM data
 SocsimF0 <- asfr %>% 
   rename(ASFR = socsim) %>% 
-  mutate(Source = "SOCSIM",
+  mutate(Source = "SOCSIM Output",
          Rate = "ASFR")
 
 ## Plot ASFR from HFD vs SOCSIM   
@@ -204,7 +204,7 @@ bind_rows(Input_fert, SocsimF0) %>%
   ggplot(aes(x = age, y = ASFR, group = interaction(year, Source)))+
   geom_line(aes(colour = year, linetype = Source), linewidth = 1.2)+
   scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
-  scale_linetype_manual(values = c("Input Fertility" = "dotted", "SOCSIM" = "solid")) +
+  scale_linetype_manual(values = c("Input Fertility" = "dotted", "SOCSIM Output" = "solid")) +
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   theme_graphs()
 ggsave(file="Graphs/ASFR_Input_Output.jpeg", width=17, height=9, dpi=300)
@@ -212,6 +212,7 @@ ggsave(file="Graphs/ASFR_Input_Output.jpeg", width=17, height=9, dpi=300)
 
 # ASMR ----
 ## We compare the mid-year ASMR with central death rates from HMD life tables 1x1
+## and the WPP life tables, with rates extended to 110 years using the Kannisto model.
 # Rates will be aggregated as defined in the estimate_mortality_rates()
 
 # Get female life tables from HMD, 1x1
@@ -227,14 +228,70 @@ ltm <- readHMDweb(CNTRY = "SWE",
                   password = HMD_password)
 
 # Load the WPP 2024 projected life tables in csv format
-WPP_ltf <- read_csv("Data/WPP2024_Life_Table_Complete_Medium_Female_2024-2100.csv", show_col_types = FALSE)
-WPP_ltm <- read_csv("Data/WPP2024_Life_Table_Complete_Medium_Male_2024-2100.csv", show_col_types = FALSE)
+lifetable_female_proj <- read_csv("Data/WPP2024_Life_Table_Complete_Medium_Female_2024-2100.csv", show_col_types = FALSE)
+lifetable_male_proj <- read_csv("Data/WPP2024_Life_Table_Complete_Medium_Male_2024-2100.csv", show_col_types = FALSE)
 
 # Combine WPP male and female life tables and filter for Sweden
-WPP_mort <- bind_rows(WPP_ltf, WPP_ltm) %>% 
+WPP_mort_raw <- bind_rows(lifetable_female_proj, lifetable_male_proj) %>% 
   filter(ISO3_code == "SWE") %>%
-  select(Year = Time, Age = AgeGrpStart, mx, Sex)
+  select(Year = Time, Sex, Age = AgeGrpStart, mx, qx, ex)
 
+## Create a function to extend the mortality rates for 100-110 using the Kannisto model ----
+
+extend_with_kannisto <- function(lt) {
+  
+  observed <- lt %>%
+    arrange(Age) %>%
+    distinct(Age, .keep_all = TRUE) %>%
+    filter(Age <= 99)
+  
+  # Fit on 80-99
+  fit_data <- observed %>%
+    filter(Age >= 80, Age <= 99) %>%
+    filter(!is.na(mx) & mx > 0)
+  
+  fit <- MortalityLaws::MortalityLaw(x = fit_data$Age, 
+                                     mx = fit_data$mx, 
+                                     law = "kannisto")
+  
+  # Extrapolate old-age mortality rates for ages 100-110
+  pred_ages <- 100:110
+  pred_mx <- predict(fit, x = pred_ages)
+  
+  extra <- tibble(Age = pred_ages, 
+                  mx = pred_mx, 
+                  qx = 1 - exp(-pred_mx))
+  
+  bind_rows(observed %>% 
+              select(Year, Sex, Age, mx, qx),
+            extra %>% 
+              mutate(Year = observed$Year[1],
+                     Sex  = observed$Sex[1]) %>% 
+              select(Year, Sex, Age, mx, qx)) %>%
+    arrange(Age) 
+}
+
+# Apply the function to extend mortality rates
+WPP_mort_ext <- WPP_mort_raw  %>%
+  group_by(Year, Sex) %>%
+  group_split() %>%
+  purrr::map_dfr(extend_with_kannisto) %>%
+  ungroup()
+
+# Complete age grid 0:110
+full_grid <- expand_grid(Year = seq(2024, 2100),
+                         Sex  = c("Female", "Male"),
+                         Age  = 0:110)
+
+WPP_mort_proj <- full_grid %>%
+  left_join(WPP_mort_ext, by = c("Year", "Sex", "Age")) %>%
+  group_by(Year, Sex) %>%
+  arrange(Age, .by_group = TRUE) %>%
+  tidyr::fill(qx, .direction = "down") %>%
+  mutate(qx = if_else(Age == 110, 1, qx)) %>%  
+  ungroup()
+# Save WPP mortality extended data (mx, qx)
+save(WPP_mort_proj, file = "Measures/WPP_mort_proj.RData")
 
 # Extract year and age breaks used in the estimate_mortality_rates() to apply the same values to HMD data
 
@@ -254,7 +311,7 @@ Input_mort <- ltf %>%
   bind_rows(ltm %>% 
               select(Year, Age, mx) %>%  
               mutate(Sex = "Male")) %>% 
-  bind_rows(WPP_mort %>% select(Year, Age, mx, Sex)) %>% 
+  bind_rows(WPP_mort_proj %>% select(Year, Age, mx, Sex)) %>% 
   filter(Year %in% year_range_mort) %>% 
   mutate(year = cut(Year, breaks = year_breaks_mort, 
                     include.lowest = F, right = F, ordered_results = T),
@@ -271,7 +328,7 @@ Input_mort <- ltf %>%
 SocsimM <- asmr %>% 
   rename(mx = socsim) %>% 
   mutate(Sex = ifelse(sex == "male", "Male", "Female"),
-         Source = "SOCSIM",
+         Source = "SOCSIM Output",
          Rate = "ASMR") %>% 
   select(year, Sex, age,  mx, Source, Rate)
 
@@ -289,7 +346,7 @@ bind_rows(Input_mort, SocsimM) %>%
   geom_line(aes(colour = year, linetype = Source), linewidth = 1.3)+
   scale_y_log10() +
   scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
-  scale_linetype_manual(values = c("Input Mortality" = "dotted", "SOCSIM" = "solid")) +
+  scale_linetype_manual(values = c("Input Mortality" = "dotted", "SOCSIM Output" = "solid")) +
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   theme_graphs()
 ggsave(file="Graphs/ASMR_Input_Output.jpeg", width=17, height=9, dpi=300)
@@ -316,23 +373,20 @@ bind_rows(Input_fert %>% rename(Estimate = ASFR),
   filter(Estimate != 0 & !is.infinite(Estimate) & !is.nan(Estimate)) %>% 
   filter(Sex == "Female") %>% 
   mutate(Year = year,
-         age = factor(as.character(age), levels = age_levels), 
-         # Change this to avoid confusion with the //// !!!
-         Source = ifelse(Source == "SOCSIM", "SOCSIM", "HFC/HFD/HMD/WPP"), 
-         Rate = ifelse(Rate == "ASFR", "Age-Specific Fertility Rates", "Age-Specific Mortality Rates")) %>%
+         age = factor(as.character(age), levels = age_levels),          Rate = ifelse(Rate == "ASFR", "Age-Specific Fertility Rates", "Age-Specific Mortality Rates")) %>%
   filter(Year %in% yrs_plot) %>% 
   ggplot(aes(x = age, y = Estimate, group = interaction(Year, Source)))+
   facet_wrap(. ~ Rate, scales = "free") + 
   geom_line(aes(colour = Year, linetype = Source), linewidth = 1.5)+ 
   scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
-  scale_linetype_manual(values = c("dotted", "solid"))+
+  scale_linetype_manual(values = c("dotted", 'dotdash', "solid"))+
   facetted_pos_scales(y = list("Age-Specific Fertility Rates" = NULL,
                                "Age-Specific Mortality Rates" =  scale_y_continuous(trans = "log10")))+
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   labs(x = "Age")+
   theme_graphs()
-ggsave(file="Graphs/ASFR_ASMR_Input_Output.jpeg", width=17, height=9, dpi=300)
-ggsave(file="Graphs/ASFR_ASMR_Input_Output.pdf", width=17, height=9, dpi=300, device = "pdf")
+ggsave(file="Graphs/App_ASFR_ASMR_Input_Output.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/App_ASFR_ASMR_Input_Output.pdf", width=17, height=9, dpi=300, device = "pdf")
 #----------------------------------------------------------------------------------------------------
 ## Summary measures: TFR and e0 ----
 # Here, we use the socsim rates by 1 year age group and 1 calendar year
@@ -371,7 +425,7 @@ TFR <-  asfr_1 %>%
   group_by(Year) %>% 
   summarise(TFR = sum(socsim, na.rm = T)) %>%
   ungroup() %>% 
-  mutate(Source = "SOCSIM") 
+  mutate(Source = "SOCSIM Output") 
 
 ## Plot TFR from HFC, HFD, WPP vs SOCSIM 
 bind_rows(TFR_Input, TFR) %>%
@@ -401,14 +455,15 @@ save(asmr_1, file = "Measures/asmr_1.RData")
 lt <- lt_socsim(asmr_socsim = asmr_1)
 save(lt, file = "Measures/lt.RData")
 
+# Compute life tables WPP extended data and recalculate ex
+WPP_lt_proj <- lt_wpp_ext(WPP_mort_proj) 
+save(WPP_lt_proj, file = "Measures/WPP_lt_proj.RData")
 
 # Load and wrangle life tables for plotting
 
-# Load WPP extended life tables
-load("Measures/WPP_lt.RData")
-
 # Load life tables from asmr 1x1 from the SOCSIM simulation
 load("Measures/lt.RData")
+load("Measures/WPP_lt_proj.RData")
 
 # Load asmr 1x1 for the simulations
 load("Measures/asmr_1.RData")
@@ -421,11 +476,6 @@ year_range_mort_1 <- min(year_breaks_mort_1):max(year_breaks_mort_1-1)
 
 ## Compare with ex at age 0 for Sweden in HMD and WPP
 
-# Combine WPP male and female life tables and filter for Sweden
-WPP_ex <- bind_rows(WPP_ltf, WPP_ltm) %>% 
-  filter(ISO3_code == "SWE") %>%
-  select(Year = Time, Age = AgeGrpStart, ex, Sex)
-
 # Wrangle HMD-WPP life tables
 lt_Input <- ltf %>%
   select(Year, Age, ex) %>% 
@@ -433,14 +483,14 @@ lt_Input <- ltf %>%
   bind_rows(ltm %>% 
               select(Year, Age, ex) %>%  
               mutate(Sex = "Male")) %>% 
-  bind_rows(WPP_lt %>% select(Year, Age, ex, Sex)) %>% 
+  bind_rows(WPP_lt_proj %>% select(Year, Age, ex, Sex)) %>% 
   mutate(Source = "Input Mortality")
 
 # Wrangle SOCSIM life tables
 lt_Output <- lt %>%
   mutate(Year = as.numeric(str_extract(year, "\\d+")),
          Sex = ifelse(sex == "female", "Female", "Male"),
-         Source = "SOCSIM") %>% 
+         Source = "SOCSIM Output") %>% 
   select(Year, Age, ex, Sex, Source)
 
 # Plot life expectancy at birth, Input vs Output
@@ -475,5 +525,5 @@ bind_rows(TFR_Input %>% rename(Estimate = TFR) %>%  mutate(Rate = "TFR"),
                                "Life Expectancy at Birth" =  scale_y_continuous()))+
   scale_x_continuous(breaks = c(1750, 1800, 1850, 1900, 1950, 2000, 2050, 2100))+
   theme_graphs()
-ggsave(file="Graphs/TFR_e0_Input_Output.jpeg", width=17, height=9, dpi=300)
-ggsave(file="Graphs/TFR_e0_Input_Output.pdf", width=17, height=9, dpi=300, device = "pdf")
+ggsave(file="Graphs/App_TFR_e0_Input_Output.jpeg", width=17, height=9, dpi=300)
+ggsave(file="Graphs/App_TFR_e0_Input_Output.pdf", width=17, height=9, dpi=300, device = "pdf")
