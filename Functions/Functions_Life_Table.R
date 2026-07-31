@@ -6,7 +6,7 @@
 # https://github.com/timriffe/BSSD2021Module2/blob/master/02_tuesday/02_tuesday.Rmd 
 
 # Created on 15-03-2023
-# Last modified on 16-03-2023
+# Last modified on 30-07-2026
 #----------------------------------------------------------------------------------------------------
 
 lt_socsim <- function(asmr_socsim){
@@ -87,4 +87,41 @@ lt_socsim_sims <- function(asmr_socsim_sims){
   
   return(lt_socsim_sims)
   
+}
+
+# Calculate life table from WPP extended data ----
+
+lt_wpp_ext <- function(wpp_ext){
+  
+  wpp_lt <- wpp_ext %>%
+    group_by(Year, Sex) %>%
+    arrange(Age, .by_group = TRUE) %>%
+    mutate(n  = if_else(Age == max(Age), 1, lead(Age) - Age),
+           rn = row_number()) %>%
+    filter(between(rn, 1, max(which(!is.na(qx) & qx >= 0)))) %>%
+    mutate(mx = case_when(is.nan(mx)      ~ 0,
+                          is.infinite(mx) ~ 1,
+                          TRUE            ~ mx),
+      qx = case_when(is.nan(qx)      ~ 0,
+                     is.infinite(qx) ~ 1,
+                     TRUE            ~ qx),
+      qx = pmin(pmax(qx, 0), 1),
+      qx = if_else(Age == max(Age), 1, qx),
+      ax = case_when(Age == 0 & Sex == "Female" & mx < 0.01724 ~ 0.14903 - 2.05527 * mx,
+                     Age == 0 & Sex == "Female" & mx < 0.06891 ~ 0.04667 + 3.88089 * mx,
+                     Age == 0 & Sex == "Female" & mx >= 0.06891 ~ 0.31411,
+                     Age == 0 & Sex == "Male"   & mx < 0.02300 ~ 0.14929 - 1.99545 * mx,
+                     Age == 0 & Sex == "Male"   & mx < 0.08307 ~ 0.02832 + 3.26021 * mx,
+                     Age == 0 & Sex == "Male"   & mx >= 0.08307 ~ 0.29915,
+                     Age == max(Age)            ~ if_else(mx > 0, 1 / mx, 1),
+                     TRUE                       ~ n / 2),
+      px = 1 - qx,
+      lx = 1e5 * c(1, cumprod(px[-n()])),
+      dx = lx * qx,
+      Lx = n * lx - (n - ax) * dx,
+      Tx = rev(cumsum(rev(Lx))),
+      ex = Tx / lx) %>%
+    ungroup()
+  
+  return(wpp_lt)
 }
