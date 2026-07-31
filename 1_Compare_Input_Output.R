@@ -9,7 +9,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 14-10-2025
-# Last modified on 23-03-2026
+# Last modified on 31-07-2026
 
 ## Based on code prepared for the microsimulation vs registers paper
 # U:/SOCSIM/SOCSIM_Registers/1_Compare_Input_Output.R
@@ -31,8 +31,7 @@ library(viridis)
 ## Load theme for the graphs and to convert SOCSIM time
 source("Functions/Functions_Graphs.R")
 
-# Load function to calculate life table from asmr 1x1
-# Currently, it only works with asmr calculated with rsocsim::estimate_mortality_rates()
+# Load function to calculate life table from asmr 1x1 and WPP extended rates
 source("Functions/Functions_Life_Table.R")
 
 ## Type inside the quotes HFD and HMD credentials (username and password) for the new website
@@ -75,7 +74,7 @@ asmr <- estimate_mortality_rates(opop = opop,
                                  year_min = 1750, # Closed
                                  year_max = 2100, # Open )
                                  year_group = 5,
-                                 age_max_mort = 100, # Open )
+                                 age_max_mort = 110, # Open )
                                  age_group = 5) # [,) 
 save(asmr, file = "Measures/asmr.RData")
 
@@ -186,7 +185,7 @@ Input_fert <- bind_rows(HFC, HFD, WPP_fert) %>%
   group_by(year, age) %>%
   summarise(ASFR = mean(ASFR, na.rm = T)) %>%
   ungroup() %>%
-  mutate(Source = "HFC/HFD/WPP", 
+  mutate(Source = "Input Fertility", 
          Rate = "ASFR")
 
 # Wrangle SOCSIM data
@@ -205,7 +204,7 @@ bind_rows(Input_fert, SocsimF0) %>%
   ggplot(aes(x = age, y = ASFR, group = interaction(year, Source)))+
   geom_line(aes(colour = year, linetype = Source), linewidth = 1.2)+
   scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
-  scale_linetype_manual(values = c("HFC/HFD/WPP" = "dotted", "SOCSIM" = "solid")) +
+  scale_linetype_manual(values = c("Input Fertility" = "dotted", "SOCSIM" = "solid")) +
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   theme_graphs()
 ggsave(file="Graphs/ASFR_Input_Output.jpeg", width=17, height=9, dpi=300)
@@ -265,7 +264,7 @@ Input_mort <- ltf %>%
   group_by(year, Sex, age) %>% 
   summarise(mx = mean(mx, na.rm = T)) %>%
   ungroup() %>%
-  mutate(Source = "HMD/WPP",
+  mutate(Source = "Input Mortality",
          Rate = "ASMR")
 
 # Wrangle SOCSIM data
@@ -290,7 +289,7 @@ bind_rows(Input_mort, SocsimM) %>%
   geom_line(aes(colour = year, linetype = Source), linewidth = 1.3)+
   scale_y_log10() +
   scale_color_manual(values = c("#79B727", "#2779B7", "#B72779", "#6527B7"))+ 
-  scale_linetype_manual(values = c("HMD/WPP" = "dotted", "SOCSIM" = "solid")) +
+  scale_linetype_manual(values = c("Input Mortality" = "dotted", "SOCSIM" = "solid")) +
   scale_x_discrete(guide = guide_axis(angle = 90)) +
   theme_graphs()
 ggsave(file="Graphs/ASMR_Input_Output.jpeg", width=17, height=9, dpi=300)
@@ -364,7 +363,7 @@ TFR_Input <- bind_rows(HFC, HFD, WPP_fert) %>%
   group_by(Year) %>% 
   summarise(TFR = sum(ASFR, na.rm = T)) %>% 
   ungroup() %>% 
-  mutate(Source = "HFC/HFD/WPP")
+  mutate(Source = "Input Fertility")
 
 # Calculate TFR from SOCSIM
 TFR <-  asfr_1 %>% 
@@ -394,7 +393,7 @@ asmr_1 <- estimate_mortality_rates(opop = opop,
                                    year_min = 1751, # Closed
                                    year_max = 2101, # Open )
                                    year_group = 1,
-                                   age_max_mort = 100, # Open )
+                                   age_max_mort = 110, # Open )
                                    age_group = 1) # [,)
 save(asmr_1, file = "Measures/asmr_1.RData")
 
@@ -404,6 +403,9 @@ save(lt, file = "Measures/lt.RData")
 
 
 # Load and wrangle life tables for plotting
+
+# Load WPP extended life tables
+load("Measures/WPP_lt.RData")
 
 # Load life tables from asmr 1x1 from the SOCSIM simulation
 load("Measures/lt.RData")
@@ -431,8 +433,8 @@ lt_Input <- ltf %>%
   bind_rows(ltm %>% 
               select(Year, Age, ex) %>%  
               mutate(Sex = "Male")) %>% 
-  bind_rows(WPP_ex %>% select(Year, Age, ex, Sex)) %>% 
-  mutate(Source = "HMD/WPP")
+  bind_rows(WPP_lt %>% select(Year, Age, ex, Sex)) %>% 
+  mutate(Source = "Input Mortality")
 
 # Wrangle SOCSIM life tables
 lt_Output <- lt %>%
@@ -456,7 +458,7 @@ ggsave(file="Graphs/e0_Input_Output.jpeg", width=17, height=9, dpi=300)
 #----------------------------------------------------------------------------------------------------
 ## Final plot combining TFR and e0 ----
 
-## Plotting TFR and e0 (for females) from HFD/HMD vs SOCSIM 
+## Plotting TFR and e0 (for females) from HFC/HFD/HMD/WPP vs SOCSIM 
 bind_rows(TFR_Input %>% rename(Estimate = TFR) %>%  mutate(Rate = "TFR"),
           TFR %>% rename(Estimate = TFR) %>% mutate(Rate = "TFR")) %>% 
   mutate(Sex = "Female") %>%   
