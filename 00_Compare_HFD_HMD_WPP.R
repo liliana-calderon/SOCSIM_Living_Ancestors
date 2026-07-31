@@ -131,6 +131,9 @@ WPP_mort <- full_grid %>%
   mutate(qx = if_else(Age == 110, 1, qx)) %>%  
   ungroup()
 
+# Create a sub-folder called "Measures" to save the estimates if it does not exist.
+ifelse(!dir.exists("Measures"), dir.create("Measures"), FALSE) 
+save(WPP_mort, file = "Measures/WPP_mort.RData")
 #----------------------------------------------------------------------------------------------------
 ## Comparison of HFD/HMD data with WPP for overlapping years (1950-2023) ----
 
@@ -183,7 +186,7 @@ ltm <- readHMDweb(CNTRY = "SWE",
                   username = HMD_username,
                   password = HMD_password)
 
-# Extract years in WPP data to filter HFD data
+# Extract years in WPP data to filter HMD data
 year_range_mort <- WPP_mort %>% pull(Year) %>% unique()
 
 # Wrangle HMD life tables
@@ -197,7 +200,7 @@ HMD_qx <- ltf %>%
   mutate(Source = "HMD", 
          Rate = "qx")
 
-# Wrangle WPP life tables (extended to 110)
+# Wrangle WPP mortality data (extended to 110)
 WPP_qx <- WPP_mort %>% 
   select(Year, Sex, Age, qx) %>% 
   mutate(Source = "WPP", 
@@ -296,11 +299,14 @@ HMD_ex <- ltf %>%
   filter(Year %in% year_range_mort) %>% 
   mutate(Source = "HMD")
 
-# Wrangle WPP extended data and recalculate ex
-WPP_ex <- lt_wpp_ext(WPP_mort) %>% 
+# Compute life tables WPP extended data and recalculate ex
+WPP_lt <- lt_wpp_ext(WPP_mort) 
+save(WPP_lt, file = "Measures/WPP_lt.RData")
+
+# Wrangle WPP life tables
+WPP_ex <- WPP_lt %>% 
   select(Year, Age, ex, Sex) %>% 
   mutate(Source = "WPP") 
-
 
 ## Plot ex from HMD vs WPP
 bind_rows(HMD_ex, WPP_ex) %>% 
