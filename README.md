@@ -49,9 +49,9 @@ steps:
 5.  Open the provided RStudio project.
 6.  Run the scripts sequentially in the order suggested by the numbers
     of the files (0-4).
-7.  In scripts 0 and 1, please type your username and password for
+7.  In scripts 00, 01 and 1, please type your username and password for
     [HFD](https://www.humanfertility.org/) and
     [HMD](https://www.mortality.org/) in the corresponding space before
     running the code.  
 8.  To get exactly the same simulation results, you should use the same
-    randomly generated seed mentioned in script 0.
+    randomly generated seed mentioned in script 01.
