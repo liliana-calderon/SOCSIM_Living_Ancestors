@@ -112,7 +112,7 @@ extend_with_kannisto <- function(lt) {
   }
 
 # Apply the function to extend mortality rates
-wpp_mort_ext <- WPP_mort_raw  %>%
+WPP_mort_ext <- WPP_mort_raw  %>%
   group_by(Year, Sex) %>%
   group_split() %>%
   purrr::map_dfr(extend_with_kannisto) %>%
@@ -123,8 +123,8 @@ full_grid <- expand_grid(Year = seq(1950, 2023),
                          Sex  = c("Female", "Male"),
                          Age  = 0:110)
 
-WPP_mort <- full_grid %>%
-  left_join(wpp_mort_ext, by = c("Year", "Sex", "Age")) %>%
+WPP_mort_hist <- full_grid %>%
+  left_join(WPP_mort_ext, by = c("Year", "Sex", "Age")) %>%
   group_by(Year, Sex) %>%
   arrange(Age, .by_group = TRUE) %>%
   tidyr::fill(qx, .direction = "down") %>%
@@ -133,7 +133,7 @@ WPP_mort <- full_grid %>%
 
 # Create a sub-folder called "Measures" to save the estimates if it does not exist.
 ifelse(!dir.exists("Measures"), dir.create("Measures"), FALSE) 
-save(WPP_mort, file = "Measures/WPP_mort.RData")
+save(WPP_mort_hist, file = "Measures/WPP_mort_hist.RData")
 #----------------------------------------------------------------------------------------------------
 ## Comparison of HFD/HMD data with WPP for overlapping years (1950-2023) ----
 
@@ -187,7 +187,7 @@ ltm <- readHMDweb(CNTRY = "SWE",
                   password = HMD_password)
 
 # Extract years in WPP data to filter HMD data
-year_range_mort <- WPP_mort %>% pull(Year) %>% unique()
+year_range_mort <- WPP_mort_hist %>% pull(Year) %>% unique()
 
 # Wrangle HMD life tables
 HMD_qx <- ltf %>%
@@ -201,7 +201,7 @@ HMD_qx <- ltf %>%
          Rate = "qx")
 
 # Wrangle WPP mortality data (extended to 110)
-WPP_qx <- WPP_mort %>% 
+WPP_qx <- WPP_mort_hist %>% 
   select(Year, Sex, Age, qx) %>% 
   mutate(Source = "WPP", 
          Rate = "qx")
@@ -300,11 +300,11 @@ HMD_ex <- ltf %>%
   mutate(Source = "HMD")
 
 # Compute life tables WPP extended data and recalculate ex
-WPP_lt <- lt_wpp_ext(WPP_mort) 
-save(WPP_lt, file = "Measures/WPP_lt.RData")
+WPP_lt_hist <- lt_wpp_ext(WPP_mort_hist) 
+save(WPP_lt_hist, file = "Measures/WPP_lt_hist.RData")
 
 # Wrangle WPP life tables
-WPP_ex <- WPP_lt %>% 
+WPP_ex <- WPP_lt_hist %>% 
   select(Year, Age, ex, Sex) %>% 
   mutate(Source = "WPP") 
 
