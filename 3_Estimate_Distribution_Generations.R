@@ -15,7 +15,7 @@
 rm(list=ls(all=TRUE))
 
 # Prevent scientific notation
-options(scipen=999999)
+options(scipen=9999)
 
 ## Load packages 
 library(tidyverse)
