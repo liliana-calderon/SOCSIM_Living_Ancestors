@@ -324,6 +324,7 @@ mean_number_age %>%
 # Plot the mean number of co-existing ancestors by age
 mean_number_age %>%
   filter(kin_type != "Greatgreatgrandmothers" & kin_type != "Greatgreatgrandfathers") %>% 
+  filter(!is.na(mean_number)) %>%
   mutate(kin_type = factor(kin_type, 
                            levels = c("Greatgreatgrandmothers", "Greatgreatgrandfathers", 
                                       "Greatgrandmothers", "Greatgrandfathers",
@@ -353,6 +354,7 @@ mean_number_age %>%
         legend.key.height = unit(1, "cm"),
         legend.key.width = unit(2, "cm"))
 ggsave("Graphs/6_Number_Coexisting_Ancestors_Age.jpg", width = 20, height = 16, dpi = 300)
+ggsave("Graphs/6_Number_Coexisting_Ancestors_Age.pdf", width = 20, height = 16, dpi = 300, device = "pdf")
 
 
 ## Calculate overlap with all ancestors by cohort and ancestors' generation ----
