@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 27-10-2025
-# Last modified on 22-07-2026
+# Last modified on 03-08-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 
@@ -147,3 +147,5 @@ mean_ancestors_birth %>%
   theme_graphs() +
   scale_color_viridis_d(option = "D", direction =-1)+
   labs(x = "Birth Cohort", y = "Sex Gap in the Mean Number Alive at Birth", colour = "Ancestors' Generation")
+ggsave(file="Graphs/Z_Mean_Number_Ancestors_Birth_Sex_Gap.jpeg", width=20, height=9, dpi=300)
+ggsave(file="Graphs/Z_Mean_Number_Ancestors_Birth_Sex_Gap.pdf", width=20, height=9, dpi=300, device = "pdf")
