@@ -8,7 +8,7 @@
 # c.f. script 0_Set_Up_Simulation.R
 
 # Created on 04-11-2025
-# Last modified on 30-07-2026
+# Last modified on 03-08-2026
 #----------------------------------------------------------------------------------------------------
 ## General settings and functions -----
 rm(list=ls(all=TRUE))
@@ -304,6 +304,24 @@ prop_any_age %>%
         legend.key.width = unit(2, "cm"))
 ggsave("Graphs/4_Proportion_Any_Ancestors_Age.jpg",  width = 20, height = 16, dpi = 300)
 ggsave("Graphs/4_Proportion_Any_Ancestors_Age.pdf",  width = 20, height = 16, dpi = 300, device = "pdf")
+
+# Check threshold age for having at least one ancestor alive
+prop_any_age %>% 
+  # filter(dob_ego_year < 1800) %>% 
+  #filter(dob_ego_year >= 1800 & dob_ego_year < 1900) %>% 
+  filter(dob_ego_year < 1850) %>% 
+  # filter(dob_ego_year >= 1850 & dob_ego_year < 1900) %>% 
+  # filter(dob_ego_year > 1900) %>% 
+  # filter(dob_ego_year > 1950) %>% 
+  # filter(dob_ego_year == 2000) %>% 
+  #filter(kin_type %in% c("Mother", "Father")) %>% 
+  filter(kin_type %in% c("Grandmothers", "Grandfathers")) %>% 
+  filter(prop_any > 0.05) %>% 
+  group_by(kin_type, dob_ego_year) %>% 
+  summarise(threshold = max(age),
+            .groups = "drop") %>% 
+  group_by(kin_type) %>% 
+  summarise(threshold = mean(threshold))
 
 
 ## Combine results for the mean number of co-existing ancestors alive by age ----
