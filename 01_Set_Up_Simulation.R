@@ -251,11 +251,14 @@ write.table(presim.omar, "presim.omar", row.names = F, col.names = F)
 #------------------------------------------------------------------------------------------------------
 ## Run SOCSIM simulations with 'rsocsim' package ----
 
-# rsocsim can be now easily installed from CRAN:
-# install.packages("rsocsim")
+# The instructions to install the rsocsim package and run the simulation 
+# can be found on https://github.com/MPIDR/rsocsim/blob/main/readme.md
 
-# To get the development version, from binary package or source
-# follow the instructions on https://mpidr.github.io/rsocsim/
+# Before running the installation, check that the required packages are installed 
+# install.packages(c("Rcpp", "magrittr", "dplyr", "tidyr", "future"))
+
+# Install rsocsim from CRAN 
+# install.packages("rsocsim")
 
 # Load rsocsim package
 library("rsocsim")
