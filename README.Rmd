@@ -16,7 +16,7 @@ knitr::opts_chunk$set(echo = FALSE,
 ```
 # Introduction
 
-.We use the SOCSIM demographic microsimulation program and data for Sweden from the [Human Fertility Collection (HFC)](https://www.fertilitydata.org/) (1751-1890), the [Human Fertility Database (HFD)](https://www.humanfertility.org/) (1891-2023), the [Human Mortality Database (HMD)](https://www.mortality.org/) (1751-2023), and the [World Population Prospects (WPP) 2024 Revision](https://population.un.org/wpp/downloads?folder=Standard%20Projections&group=CSV%20format) (2024-2100) 
+Measuring generational overlap, i.e. the extent to which individuals share their lives with relatives from other generations, is essential for examining how demographic changes affect family structures and intergenerational relationships over time. This research uses SOCSIM demographic microsimulation and Swedish data from the [Human Fertility Collection (HFC)](https://www.fertilitydata.org/) (1751-1890), the [Human Fertility Database (HFD)](https://www.humanfertility.org/) (1891-2023), the [Human Mortality Database (HMD)](https://www.mortality.org/) (1751-2023), and the [World Population Prospects (WPP) 2024 Revision](https://population.un.org/wpp/downloads?folder=Standard%20Projections&group=CSV%20format) (2024-2100)to estimate the probability of having living parents, grandparents and great-grandparents throughout the life course for cohorts born between 1751 and 2000. Three key measures are calculated: the mean number of living ancestors at birth, the distribution of living generations at birth and at age 20, and lifetime overlap with each ancestor, operationalised as years with at least one living ancestor, person-years of overlap, and mean overlap per ancestor.
 
 # Scripts for reproducible results
 
